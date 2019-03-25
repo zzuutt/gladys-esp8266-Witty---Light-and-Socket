@@ -17,9 +17,9 @@ La carte "Optocoupler isolation 8 entrées" sera reliée aux lampes pour visuali
 
 # Description
 
-Téléversez le fichier ino dans l'ESP
+Téléversez le fichier ino ou bin dans l'ESP
 
-## raccordement mcp23017
+## Raccordement mcp23017
 
 Le port A du mcp23017 est utilisé pour commander les relais
 Le port B est utilisé pour contrôler l'état des lampes
