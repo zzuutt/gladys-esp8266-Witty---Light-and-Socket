@@ -87,7 +87,7 @@ C'est très simple, prenez votre smartphone,
 ![step1](https://github.com/zzuutt/gladys-esp8266-Witty/blob/master/images/step1.jpg)
 ![step2](https://github.com/zzuutt/gladys-esp8266-Witty/blob/master/images/step2.jpg)
 ![step3](https://github.com/zzuutt/gladys-esp8266-Witty/blob/master/images/step3.jpg)
-![step4](https://github.com/zzuutt/gladys-esp8266-Witty/blob/master/images/step4.jpg)
+![step4](https://github.com/zzuutt/gladys-esp8266-Witty/blob/master/images/step4-1.jpg)
 ![step5](https://github.com/zzuutt/gladys-esp8266-Witty/blob/master/images/step5.jpg)
 ![step6](https://github.com/zzuutt/gladys-esp8266-Witty/blob/master/images/step6.jpg)
 ![step7](https://github.com/zzuutt/gladys-esp8266-Witty/blob/master/images/step8.jpg)
