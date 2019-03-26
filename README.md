@@ -85,7 +85,20 @@ C'est très simple, prenez votre smartphone,
 * Fermez la page
 
 La led bleue clignotante passe au fixe, puis le module redémarre.
+
 S'il ne redémarre pas tout seul, débranchez l'alimentation puis rebranchez.
 
 La led verte clignote puis passe au blanc clignotant. 
+
 Le module envoie l'état des lampes à Gladys.
+
+## I2C Scanner
+Vous utilisez un autre câblage et / ou vous ne connaissez pas l'adresse du MCP23017.
+
+Pour la connaitre, consultez la page '*/scanI2C*'
+
+- Activez le mode 'debug' 
+
+- Allez sur la page http://ip-de-esp/scanI2C
+
+![page I2C scanner](https://github.com/zzuutt/gladys-esp8266-Witty/blob/master/images/I2C-scanner.jpg)
