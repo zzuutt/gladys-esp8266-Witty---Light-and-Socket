@@ -72,9 +72,9 @@ Le bouton de l'ESP va nous permettre d'effectuer différentes actions
 Configurez Gladys
 * installez le module (si ce n'est pas déjà fait) de **Mathieu**, [Gladys-Device-HTTP](https://github.com/MathieuAndrade/Gladys-Device-HTTP)
 * Ajoutez un nouveau device, comme indiqué, dans le champ identifier renseignez l'adresse complète de votre device (http://ip_de_lesp)
-* Cliquez sur "Edit" et créé un devicetype. Dans le champ identifier du deviceType entrez l'url suivante */?token=**votre_token**&devicetype=**ID_du_devicetype**&cmd=**COMMAND***
+* Cliquez sur "Edit" et créé un devicetype. Dans le champ identifier du deviceType entrez les paramètres suivants */?token=**votre_token**&devicetype=**ID_du_devicetype**&cmd=**COMMAND***
 
-Les commandes peuvent être (***en majuscule***) :
+Les **COMMAND**es peuvent être (***en majuscule***) :
 
 * PUSH   *(utile pour les télérupteurs)*
 * SWITCH
