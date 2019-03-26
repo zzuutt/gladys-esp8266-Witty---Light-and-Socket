@@ -3,7 +3,7 @@ Module ESP8266 Witty + extend card MCP23017 + card 8 relays + card 8 input
 # Module ESP8266 Witty
 Nous allons utiliser un module ESP8266 Witty pour gérer 8 relais et 8 entrées
 
-![ESP8266WITTY](https://github.com/zzuutt/gladys-esp8266-Witty/blob/master/images/ESP8266-Witty.jpg)
+![ESP8266WITTY](https://github.com/zzuutt/gladys-esp8266-Witty/blob/master/images/ESP8266-Witty.jpg) + ![MCP23017](https://github.com/zzuutt/gladys-esp8266-Witty/blob/master/images/mcp23017.jpg) + ![8relay](https://github.com/zzuutt/gladys-esp8266-Witty/blob/master/images/8relay.jpg)![8input](https://github.com/zzuutt/gladys-esp8266-Witty/blob/master/images/8input.jpg)
 
 Matériel nécessaire :
 - module ESP8266 [lien ebay](https://www.ebay.fr/itm/ESP8266-Serial-WIFI-Witty-Cloud-Development-Board-ESP-12F-Module-MINI-Nodemcu/264039039222?_trkparms=aid=111001&algo=REC.SEED&ao=1&asc=20160908105057&meid=7912a8f239d74abcb7126c140473364d&pid=100675&rk=6&rkt=15&sd=173503702813&itm=264039039222&_trksid=p2481888.c100675.m4236&_trkparms=pageci:8df836f6-4f16-11e9-aa46-74dbd1802d22%7Cparentrq:b59144011690ad794a1eef74fff9554d%7Ciid:1)
