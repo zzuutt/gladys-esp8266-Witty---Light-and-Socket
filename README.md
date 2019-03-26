@@ -90,7 +90,7 @@ C'est très simple, prenez votre smartphone,
 ![step4](https://github.com/zzuutt/gladys-esp8266-Witty/blob/master/images/step4.jpg)
 ![step5](https://github.com/zzuutt/gladys-esp8266-Witty/blob/master/images/step5.jpg)
 ![step6](https://github.com/zzuutt/gladys-esp8266-Witty/blob/master/images/step6.jpg)
-![step7](https://github.com/zzuutt/gladys-esp8266-Witty/blob/master/images/step7.jpg)
+![step7](https://github.com/zzuutt/gladys-esp8266-Witty/blob/master/images/step6.jpg)
 
 * connectez vous sur le réseau wifi ESP suivi de chiffre.
 * Allez sur l'url "*http://192.168.4.1*", vous êtes sur la page d'accueil du module.
