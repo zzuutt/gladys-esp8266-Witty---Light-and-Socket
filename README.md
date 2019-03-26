@@ -60,7 +60,7 @@ Le module ESP est équipé d'une led 3 couleurs, nous allons l'utiliser pour vis
 ## Actions
 Le bouton de l'ESP va nous permettre d'effectuer différentes actions
 > **un appui court :**
-> va nous permettre d'activer le mode debug
+> active le mode debug
 
 > **deux appuis courts après avoir activé le mode debug :**
 > imprime sur le port série la configuration
@@ -98,7 +98,6 @@ Vous utilisez un autre câblage et / ou vous ne connaissez pas l'adresse du MCP2
 Pour la connaitre, consultez la page '*/scanI2C*'
 
 - Activez le mode 'debug' 
-
 - Allez sur la page http://ip-de-esp/scanI2C
 
 ![page I2C scanner](https://github.com/zzuutt/gladys-esp8266-Witty/blob/master/images/I2C-scanner.jpg)
