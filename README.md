@@ -75,14 +75,25 @@ Configurez Gladys
 
 ## Initialisation
 A l'allumage le module clignote en bleue, il faut le configurer.
+
 C'est très simple, prenez votre smartphone, 
+
+![step1](https://github.com/zzuutt/gladys-esp8266-Witty/blob/master/images/step1.jpg)
+![step2](https://github.com/zzuutt/gladys-esp8266-Witty/blob/master/images/step2.jpg)
+![step3](https://github.com/zzuutt/gladys-esp8266-Witty/blob/master/images/step3.jpg)
+![step4](https://github.com/zzuutt/gladys-esp8266-Witty/blob/master/images/step4.jpg)
+![step5](https://github.com/zzuutt/gladys-esp8266-Witty/blob/master/images/step5.jpg)
+![step6](https://github.com/zzuutt/gladys-esp8266-Witty/blob/master/images/step6.jpg)
+![step7](https://github.com/zzuutt/gladys-esp8266-Witty/blob/master/images/step7.jpg)
+
 * connectez vous sur le réseau wifi ESP suivi de chiffre.
 * Allez sur l'url "*http://192.168.4.1*", vous êtes sur la page d'accueil du module.
 * Cliquez sur "*Configurer*".
 * Renseignez les paramètres demandés
-* Cliquez sur "*Sauvegarder*"
-* Retournez à la page d'accueil
-* Fermez la page
+* Cliquez sur "*Save*"
+* Retournez à la page d'accueil "*main page*"
+* Notez l'adresse IP du module, cela peut servir
+* Fermez la page "*Exit portal*"
 
 La led bleue clignotante passe au fixe, puis le module redémarre.
 
