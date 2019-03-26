@@ -109,12 +109,21 @@ La led verte clignote puis passe au blanc clignotant.
 
 Le module envoie l'état des lampes à Gladys.
 
+
+## Etat des lampes
+Vous pouvez visualiser en direct l'état des entrées (lampes)
+
+- Activez le mode 'debug'
+- Allez sur la page http://ip-de-lesp/checkport
+
+![page CheckPort](https://github.com/zzuutt/gladys-esp8266-Witty/blob/master/images/checkport.jpg)
+
 ## I2C Scanner
 Vous utilisez un autre câblage et / ou vous ne connaissez pas l'adresse du MCP23017.
 
 Pour la connaitre, consultez la page '*/scanI2C*'
 
 - Activez le mode 'debug' 
-- Allez sur la page http://ip-de-esp/scanI2C
+- Allez sur la page http://ip-de-lesp/scanI2C
 
 ![page I2C scanner](https://github.com/zzuutt/gladys-esp8266-Witty/blob/master/images/I2C-scanner.jpg)
