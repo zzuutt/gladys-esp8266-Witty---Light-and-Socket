@@ -98,7 +98,7 @@ C'est très simple, prenez votre smartphone,
 * Renseignez les paramètres demandés
 * Cliquez sur "*Save*"
 * Retournez à la page d'accueil "*main page*"
-* Notez l'adresse IP du module, cela peut servir
+* Notez l'adresse IP du module, cela peut servir sauf si vous utilisez une IP fixe
 * Fermez la page "*Exit portal*"
 
 La led bleue clignotante passe au fixe, puis le module redémarre.
