@@ -56,6 +56,8 @@ Le module ESP est équipé d'une led 3 couleurs, nous allons l'utiliser pour vis
 
 > **led rouge clignotante :**
 > indique une erreur
+
+Si vous avez coché l'option '***Light setting***', dès que le module se trouvera dans l'obscurité, la led sera coupée
  
 ## Actions
 Le bouton de l'ESP va nous permettre d'effectuer différentes actions
@@ -76,7 +78,7 @@ Configurez Gladys
 
 Les **COMMAND**es peuvent être (***en majuscule***) :
 
-* PUSH   *(utile pour les télérupteurs)*
+* PUSH   *(pour les télérupteurs) la durée de l'appui est modifiable voir les paramètres*
 * SWITCH
 
 ## Initialisation
