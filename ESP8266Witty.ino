@@ -9,7 +9,7 @@
    COMMAND: PUSH & SWITCH
 
 */
-#include <FS.h>               //this needs to be first, or it all crashes and burns...
+#include <FS.h>
 #include <ESP8266WiFi.h>
 #include <Ticker.h>  //Ticker Library
 #include <ArduinoJson.h>
