@@ -33,7 +33,7 @@ Le port A du mcp23017 est utilisé pour commander les relais
 
 Le port B est utilisé pour contrôler l'état des lampes
 
-Je vous recommande de raccorder l'I2C comme ci-dessous, mais pas d’inquiétude vous pourrez rechercher comment est raccordé votre mcp23017 (voir §I2C scanner) 
+Je vous recommande de raccorder l'I2C comme ci-dessous, mais pas d’inquiétude vous pourrez rechercher comment est raccordé votre mcp23017 (voir Menu Système -> Scan I2C) 
 
 | pin |      mcp23017      |     ESP8266
 |-----|--------------------|--------------------
