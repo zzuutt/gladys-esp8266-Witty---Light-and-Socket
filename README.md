@@ -99,9 +99,9 @@ C'est très simple, prenez votre smartphone,
 ![step4](https://github.com/zzuutt/gladys-esp8266-Witty/blob/master/images/step4-2.jpg)
 ![step4](https://github.com/zzuutt/gladys-esp8266-Witty/blob/master/images/step4-3.jpg)
 ![step5](https://github.com/zzuutt/gladys-esp8266-Witty/blob/master/images/step6.jpg)
-![step6](https://github.com/zzuutt/gladys-esp8266-Witty/blob/master/images/step8.jpg)
+![step6](https://github.com/zzuutt/gladys-esp8266-Witty/blob/master/images/step8-0.jpg)
 ![step7](https://github.com/zzuutt/gladys-esp8266-Witty/blob/master/images/step5-1.jpg)
-![step8](https://github.com/zzuutt/gladys-esp8266-Witty/blob/master/images/step6-1.jpg)
+![step8](https://github.com/zzuutt/gladys-esp8266-Witty/blob/master/images/step6-2.jpg)
 ![step9](https://github.com/zzuutt/gladys-esp8266-Witty/blob/master/images/step7-1.jpg)
 ![step10](https://github.com/zzuutt/gladys-esp8266-Witty/blob/master/images/step8-1.jpg)
 
@@ -126,21 +126,10 @@ http://ip-de-lesp/sys
 
 - blanc clignotant : le module envoie l'état des lampes à Gladys.
 
+## Gestion
 
-## Etat des lampes
-Vous pouvez visualiser en direct l'état des entrées (lampes)
+Vous pouvez gérer vos périphériques directement depuis votre smartphone.
 
-- Activez le mode 'debug'
-- Allez sur la page http://ip-de-lesp/checkport
+Allez sur la page système puis sélectionnez le menu gestion
 
-![page CheckPort](https://github.com/zzuutt/gladys-esp8266-Witty/blob/master/images/checkport.jpg)
-
-## I2C Scanner
-Vous utilisez un autre câblage et / ou vous ne connaissez pas l'adresse du MCP23017.
-
-Pour la connaitre, consultez la page '*/scanI2C*'
-
-- Activez le mode 'debug' 
-- Allez sur la page http://ip-de-lesp/scanI2C
-
-![page I2C scanner](https://github.com/zzuutt/gladys-esp8266-Witty/blob/master/images/I2C-scanner.jpg)
+![gestion](https://github.com/zzuutt/gladys-esp8266-Witty/blob/master/images/step9.jpg)
