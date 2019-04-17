@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="js/jquery.min.js"></script>
+  <title></title>
+  <style>
+  body {
+    font-family: Arial;
+    color: grey;
+    max-width: 500px;
+  }
+  
+  .switch {
+    position: relative;
+    display: inline-block;
+    width: 60px;
+    height: 34px;
+  }
+  
+  .switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+  
+  .slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    -webkit-transition: 0.4s;
+    transition: 0.4s;
+  }
+  
+  .slider::before {
+    position: absolute;
+    content: "";
+    height: 26px;
+    width: 26px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    -webkit-transition: 0.4s;
+    transition: 0.4s;
+  }
+  
+  input:checked + .slider {
+    background-color: #2196F3;
+  }
+  
+  input:focus + .slider {
+    box-shadow: 0 0 1px #2196F3;
+  }
+  
+  input:checked + .slider::before {
+    -webkit-transform: translateX(26px);
+    -ms-transform: translateX(26px);
+    transform: translateX(26px);
+  }
+  
+  /* Rounded sliders */
+  .slider.round {
+    border-radius: 17px;
+  }
+  
+  .slider.round::before {
+    border-radius: 50%;
+  }
+  
+  table {
+    width: 100%;
+    border: 1px solid #b3b3b3b3;
+    padding: 5px;
+    margin: 10px auto;
+    border-radius: 5px;
+  }
+  
+  table caption {
+    text-align: left;
+    padding: 5px;
+  }
+  
+  table td {
+    width: 50%;
+    text-align: center;
+    border-collapse:separate; 
+    border-spacing: 0 1em;
+  }
+
+  .loader{
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(255,255,255,0.7);
+    z-index: 9999;     
+  }
+  .spin-loader {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 150px;
+    height: 150px;
+    margin: -75px 0 0 -75px;
+    border: 16px solid #f3f3f3;
+    border-radius: 50%;
+    border-top: 16px solid #3498db;
+    -webkit-animation: spin 2s linear infinite;
+    animation: spin 2s linear infinite;
+    background-color:white;
+  }
+  .text-loader {
+    left: 50%;
+    top: 50%;
+    position: absolute;
+    width: 150px;
+    height: 1em;
+    margin: -1em -75px;
+    display: block;
+    vertical-align: middle;
+    text-align: center;
+    line-height: 1em;
+  }
+  
+  .state-ok {
+    border-top: 16px solid #34FF0E;
+  }
+  .state-false {
+    border-top: 16px solid #FF552E;
+  }
+      
+  /* Safari */
+  @-webkit-keyframes spin {
+    0% { -webkit-transform: rotate(0deg); }
+    100% { -webkit-transform: rotate(360deg); }
+  }
+  
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+  .striped {
+    background-color: #f6f6f6;
+  }
+  </style>
+
+  </head>
+  <body>
+    <div id="command"></div>
+    <div style="height:20px;">&nbsp;</div>
+    <div class="loader"><div class="spin-loader"></div><div class="text-loader"></div></div>
+    <script>
+    var stateGroupe = [];
+    var groupe = {};
+    var device = {};
+    var token = "";
+    
+    function Device(id, name, type, groupe){
+      this.id = id;
+      this.name = name;
+      this.type = type;
+      this.groupe = groupe;  
+    }
+       
+    $(document).ready(function() {
+      init();    
+    });
+    
+    
+    function init(){
+      var pageCommand = "";
+      $(".text-loader").text("Initialisation");
+      $(".loader").show();     
+      $.get( "/sendconfig?mode=direct", function(result) {
+        //console.log(result);
+      }, "json" )
+      .done(function(data){
+        token = data.gladys_token;
+        groupe=["Aucun",data.groupName1,data.groupName2,data.groupName3,data.groupName4,data.groupName5,data.groupName6,data.groupName7,data.groupName8]
+       
+        device[0] = new Device(data.deviceId1,data.deviceName1,data.deviceType1,data.deviceGroup1);
+        device[1] = new Device(data.deviceId2,data.deviceName2,data.deviceType2,data.deviceGroup2);
+        device[2] = new Device(data.deviceId3,data.deviceName3,data.deviceType3,data.deviceGroup3);
+        device[3] = new Device(data.deviceId4,data.deviceName4,data.deviceType4,data.deviceGroup4);
+        device[4] = new Device(data.deviceId5,data.deviceName5,data.deviceType5,data.deviceGroup5);
+        device[5] = new Device(data.deviceId6,data.deviceName6,data.deviceType6,data.deviceGroup6);
+        device[6] = new Device(data.deviceId7,data.deviceName7,data.deviceType7,data.deviceGroup7);
+        device[7] = new Device(data.deviceId8,data.deviceName8,data.deviceType8,data.deviceGroup8);
+        
+       
+        //device dans le Groupe ?       
+        for(var gp=1; gp<9; gp++){
+          for(var j=0; j<8; j++){
+            if(device[j].groupe == gp) {
+              stateGroupe.push(gp);
+            }
+          }
+        }
+        
+        if (stateGroupe.length > 0) {
+          stateGroupe = $.uniqueSort(stateGroupe);
+        }
+        
+        while ( (i = stateGroupe.shift()) !== undefined ) {
+            pageCommand += '<table style="width:100%;">';
+            pageCommand += '<caption>' + groupe[i] + '</caption>';
+            pageCommand += '<tbody>';
+            for(var j=0; j<8; j++){
+              if(device[j].groupe == i) {
+                pageCommand += '<tr>';
+                pageCommand += '<td>' + device[j].name + '</td>';
+                pageCommand += '<td>';
+                pageCommand += '<label class="switch">';
+                pageCommand += '<input type="checkbox" data-position="' + j + '" data-id="' + device[j].id + '" data-state="OFF">';
+                pageCommand += '<span class="slider round"></span>';
+                pageCommand += '</label>';
+                pageCommand += '</td>';
+                pageCommand += '</tr>';
+              }
+            }
+            pageCommand += '</tbody>';
+            pageCommand += '</table>'; 
+        }     
+        
+        $("#command").html(pageCommand);
+        
+        $(".loader").hide();
+        setInterval(function() {
+          checkState();
+        }, 1500); //1500 milliseconds update rate
+        
+        $("input[type='checkbox']").change(function() {
+          var id = $(this).data("id");
+          var position = $(this).data("position");
+          var command = "PUSH";
+          if(device[position].type == 2){
+            command =  "SWITCH";
+          }
+          var url = "/?token=" + token + "&deviceid=" + id + "&cmd=" + command + "&state=";
+          console.log("checked -> " + $(this).data("id"));
+          var stateButton = $(this).is(':checked');
+          if(stateButton){
+            console.log("is checked");
+            url += "0";
+            console.log(url);
+            $.get(url);
+          } else {
+            url += "1";
+            console.log(url);
+            $.get(url);
+          }
+        }); 
+        
+      })
+      .fail(function(data){
+        console.log(data);
+        $(".spin-loader").addClass("state-false");
+        $(".text-loader").html("<span style='color:red;'>Erreur<br>"+data.responseJSON.error+"</span>");
+      });
+      
+    }
+    
+    function checkState() {
+      var value = getState();     
+      //console.log("lastvalue = " + lastValue);
+      //console.log("value:" + (value).toString(2) + " lastValue:" +  + (lastValue).toString(2));
+      $.get( "/readStatePort", function(result) {
+        //console.log(result);
+      }, "json" )
+      .done(function(data){
+        //console.log(data);
+        var lastValue = data.lastValue;
+        for(var bit = 0; bit < 8; bit++){
+          let mask = 1 << bit;
+          let bitValue = (value & mask) > 0;
+          let bitLastValue = (lastValue & mask) > 0;
+          //console.log("bit Value:" + bit + " = " + bitValue);
+          //console.log("bit lastValue:" + bit + " = " + bitLastValue);
+          if (bitValue != bitLastValue) {
+            var element = document.querySelector('input[data-position="'+ bit +'"]');
+            if (element){
+              if(bitLastValue == false) {
+                element.dataset.state = "OFF";
+                element.checked = false;
+              } else {
+                element.dataset.state = "ON";
+                element.checked = true;
+              }
+            }        
+          }
+        }      
+      
+      })
+      .fail(function(data){
+      });
+    }
+    
+    function getState() {
+      var value = 0;
+      $("input[type='checkbox']:checked").each(
+          function() {
+            //console.log("id:" + $(this).data('id') + " position:" + $(this).data("position"));
+            switch ($(this).data('position')) {
+              case 0:
+                value += 1;
+                break;
+              case 1:
+                value += 2;
+                break;
+              case 2:
+                value += 4;
+                break;
+              case 3:
+                value += 8;
+                break;
+              case 4:
+                value += 16;
+                break;
+              case 5:
+                value += 32;
+                break;
+              case 6:
+                value += 64;
+                break;
+              case 7:
+                value += 128;
+                break;            
+            }           
+          }
+      );                
+      return value;
+    }
+    </script>
+  </body>
+</html>

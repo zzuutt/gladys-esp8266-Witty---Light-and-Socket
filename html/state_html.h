@@ -1,7 +1,16 @@
 const char STATE_page[] PROGMEM = R"=====( 
 <!DOCTYPE html>
-<html>
-<head>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!--jquery/3.1.1')-->
+    <script src="js/jquery.min.js"></script>
+    <!--bootstrap/3.4.1')-->
+    <script src="js/bootstrap.min.js"></script>
+    <link rel="stylesheet" href="css/bootstrap.min.css">
+    <title>Etat GPIO</title>
 <style>
 
       table {
@@ -40,11 +49,20 @@ const char STATE_page[] PROGMEM = R"=====(
 </style>
 </head>
 <body>
-<div id="statusPort">
-%%DATA%%
+<div class="container">
+  <ol class="breadcrumb">
+    <li><a href="/sys"><span class="glyphicon glyphicon-home"></span></a></li>
+    <li class="active">Etat GPIO</li>
+  </ol>
+  <div class="text-center">
+    <h1><span class="glyphicon glyphicon-dashboard"></span> Etat GPIO</h1>
+    <p>v 3.0.0</p> 
+  </div>
+  <div id="statusPort">
+  %%DATA%%
+  </div>
 </div>
 <script>
-
 setInterval(function() {
   // Call a function repetatively with 2 Second interval
   getData();
@@ -58,7 +76,7 @@ function getData() {
       this.responseText;
     }
   };
-  xhttp.open("GET", "readPort", true);
+  xhttp.open("GET", "readPort?mode=1", true);
   xhttp.send();
 }
 </script>

@@ -7,9 +7,10 @@
    + Optocoupler Isolation Voltage Test Board 8 Channel AC 220V
 
    COMMAND: PUSH & SWITCH
+   V 3.00
 
 */
-#include <FS.h>
+#include <FS.h>               //this needs to be first, or it all crashes and burns...
 #include <ESP8266WiFi.h>
 #include <Ticker.h>  //Ticker Library
 #include <ArduinoJson.h>
@@ -20,6 +21,7 @@
 #include <OneButton.h>
 #include <Wire.h>
 #include <Adafruit_MCP23017.h>
+#include "ESP8266TrueRandom.h"
 #include "html/i2c_html.h"
 #include "html/state_html.h"
 
@@ -28,11 +30,15 @@ Adafruit_MCP23017 mcp;
 
 class deviceMCP {
   public:
-    unsigned int pinOut, id, pinIn;
-    deviceMCP(unsigned int arg1, unsigned int arg2, unsigned int arg3){
+    unsigned int pinOut, id, pinIn, group, type;
+    char deviceName[32];
+    deviceMCP(unsigned int arg1, unsigned int arg2, unsigned int arg3, char arg4[32], unsigned int arg5, unsigned int arg6){
       pinOut = arg1;
       id = arg2;
-      pinIn = arg3;  
+      pinIn = arg3;
+      strcpy(deviceName, arg4);
+      group = arg5;
+      type = arg6;  //SWITCH = 2 / PUSH = 1
     }
 };
 
@@ -50,12 +56,14 @@ char static_sn[16] = "255.255.255.0";
 char static_dns[16] = "8.8.8.8";
 IPAddress _ip,_gw,_sn,_dns;
 
-deviceMCP allDeviceA[8] = {{0,0,8},{1,0,9},{2,0,10},{3,0,11},{4,0,12},{5,0,13},{6,0,14},{7,0,15}};
-
+deviceMCP allDeviceA[8] = {{0,0,8,"Device 1",0,1},{1,0,9,"Device 2",0,1},{2,0,10,"Device 3",0,1},{3,0,11,"Device 4",0,1},{4,0,12,"Device 5",0,1},{5,0,13,"Device 6",0,1},{6,0,14,"Device 7",0,1},{7,0,15,"Device 8",0,1}};
+char * groupName[] = {"Aucun", "Salon", "Salle à manger", "Cuisine", "Chambre 1", "Chambre 2", "Chambre 3", "Couloir", "Exterieur"};
 bool sensorLight = true;
+bool sensor = false;
 
 // Constants
-const char* CONFIG_FILE = "/config.json";
+const char* CONFIG_FILE_NETWORK = "/config_network.json";
+const char* CONFIG_FILE = "/config_param.json";
 
 //Variables
 //PIN du boutton poussoir reset
@@ -79,7 +87,7 @@ unsigned int delayPush = 300;
 unsigned int interruptPin = 14;
 volatile byte interruptCounter = 0;
 int numberOfInterrupts = 0;
-bool invertInputDataPortB = 0;
+bool invertInputDataPortB = true;
 byte lastPortB = 0b00000000;
 
 bool sensorState = false;
@@ -90,15 +98,20 @@ bool espStart = false;
 
 // Indicates whether ESP has WiFi credentials saved from previous session
 bool initialConfig = false;
+bool initialParam = false;
 
 // Delay LongPress (in millisec)
 int longPressDelay = 8000;  //8s
+// UUIDs in binary form are 16 bytes long
+byte uuidNumber[16]; 
+String uuidStr;
 
 // Function Prototypes
 bool readConfigFile();
 bool writeConfigFile();
 
 OneButton button(BUTTON_PIN_RST, true);
+
 // Set web server port number to 80
 ESP8266WebServer server(80);
 
@@ -133,34 +146,36 @@ void black() {
 }
 
 void changeState(int pin) {
-  if(pin == 999){   
-    digitalWrite(RED_PIN_LED, !(digitalRead(RED_PIN_LED)));  //Invert Current State of LED
+  byte red = bitRead(pin, 0);
+  byte green = bitRead(pin, 1);
+  byte blue = bitRead(pin, 2);
+
+  if (red) {
+    digitalWrite(RED_PIN_LED, !(digitalRead(RED_PIN_LED)));  //Invert Current State of LED  
+  }
+  if (green) {
     digitalWrite(GREEN_PIN_LED, !(digitalRead(GREEN_PIN_LED)));  //Invert Current State of LED
+  }  
+  if (blue) {   
     digitalWrite(BLUE_PIN_LED, !(digitalRead(BLUE_PIN_LED)));  //Invert Current State of LED
-  } else {
-    digitalWrite(pin, !(digitalRead(pin)));  //Invert Current State of LED
   }
 }
 
-void blinkLED(int c_red = 0, int c_green = 0, int c_blue = 0) {
+void blinkLED(int c_red = 0, int c_green = 0, int c_blue = 0, float every = 0.5) {
   blinker.detach();
   black();
   //Initialize Ticker every 0.5s
-  if (c_red && c_green && c_blue){
-    blinker.attach(0.5, changeState, 999);
-  } else if (c_red) {
-    blinker.attach(0.5, changeState, RED_PIN_LED);
-  } else if (c_green) {
-    blinker.attach(0.5, changeState, GREEN_PIN_LED);
-  } else if (c_blue) {
-    blinker.attach(0.5, changeState, BLUE_PIN_LED);
+  int pin = c_red + (c_green * 2) + (c_blue * 4);
+  //Serial.println("value color:"+String(pin));
+  if (pin > 0){
+    blinker.attach(every, changeState, pin);
   }
 }
 
 void clearConfig() {
   // is configuration portal requested?
   Serial.println("Configuration portal requested");
-  blinkLED(0, 0, 1);
+  blinkLED(0, 0, 1, 0.2);
   //Local intialization. Once its business is done, there is no need to keep it around
   
   // Extra parameters to be configured
@@ -174,72 +189,6 @@ void clearConfig() {
   WiFiManagerParameter p_static_dns("static_dns", "DNS", static_dns, 16);
   // Just a quick hint
   WiFiManagerParameter p_hintip("<small>*Hint: Leave the IP address empty or 0.0.0.0, if you want to use DHCP</small>");
-
-  WiFiManagerParameter custom_textServer("<p style=\"border-top: 1px black solid;padding: 5px;margin-top: 10px;\"><b>Server Settings</b></p>");
-  // IP Gladys Server - this is a straight forward string parameter
-  WiFiManagerParameter p_gladys_server("gladys_server", "IP Gladys Server", gladys_server, 17);
-
-  // PORT Gladys Server - this is a straight forward string parameter
-  WiFiManagerParameter p_gladys_port("gladys_port", "PORT Gladys Server", gladys_port, 6);
-
-  // Gladys Token - this is a straight forward string parameter
-  WiFiManagerParameter p_gladys_token("gladys_token", "Gladys Token", gladys_token, 34);
-
-  // I2C SCL and SDA parameters are integers so we need to convert them to char array but
-  // no other special considerations
-  WiFiManagerParameter custom_textI2C("<p style=\"border-top: 1px black solid;padding: 5px;margin-top: 10px;\"><b>I2C Settings</b></p>");
-  char convertedValue[4];
-  sprintf(convertedValue, "%d", I2C_SDA_PIN);
-  WiFiManagerParameter p_I2C_SDA_PIN("I2C_SDA_PIN", "I2C SDA pin", convertedValue, 4);
-  sprintf(convertedValue, "%d", I2C_SCL_PIN);
-  WiFiManagerParameter p_I2C_SCL_PIN("I2C_SCL_PIN", "I2C SCL pin", convertedValue, 4);
-  sprintf(convertedValue, "%d", I2C_ADDR);
-  WiFiManagerParameter p_I2C_ADDR("I2C_ADDR", "I2C Addres (0 = 0x20 / 1 = 0x21 ...)", convertedValue, 4);
-  sprintf(convertedValue, "%d", interruptPin);
-  WiFiManagerParameter p_interruptPin("interruptPin", "Interrupt Pin (INTB)", convertedValue, 4);
-  
-  //ID device
-  WiFiManagerParameter custom_textDevice("<p style=\"border-top: 1px black solid;padding: 5px;margin-top: 10px;\"><b>ID device Settings</b></p>");
-  sprintf(convertedValue, "%d", allDeviceA[0].id);
-  WiFiManagerParameter p_ID_device1("ID_device1", "ID device - 1", convertedValue, 4);
-  sprintf(convertedValue, "%d", allDeviceA[1].id);
-  WiFiManagerParameter p_ID_device2("ID_device2", "ID device - 2", convertedValue, 4);
-  sprintf(convertedValue, "%d", allDeviceA[2].id);
-  WiFiManagerParameter p_ID_device3("ID_device3", "ID device - 3", convertedValue, 4);
-  sprintf(convertedValue, "%d", allDeviceA[3].id);
-  WiFiManagerParameter p_ID_device4("ID_device4", "ID device - 4", convertedValue, 4);
-  sprintf(convertedValue, "%d", allDeviceA[4].id);
-  WiFiManagerParameter p_ID_device5("ID_device5", "ID device - 5", convertedValue, 4);
-  sprintf(convertedValue, "%d", allDeviceA[5].id);
-  WiFiManagerParameter p_ID_device6("ID_device6", "ID device - 6", convertedValue, 4);
-  sprintf(convertedValue, "%d", allDeviceA[6].id);
-  WiFiManagerParameter p_ID_device7("ID_device7", "ID device - 7", convertedValue, 4);
-  sprintf(convertedValue, "%d", allDeviceA[7].id);
-  WiFiManagerParameter p_ID_device8("ID_device8", "ID device - 8", convertedValue, 4);
-
-  // LIGHT sensor present or not - bool parameter visualized using checkbox, so couple of things to note
-  // - value is always 'T' for true. When the HTML form is submitted this is the value that will be
-  //   sent as a parameter. When unchecked, nothing will be sent by the HTML standard.
-  // - customhtml must be 'type="checkbox"' for obvious reasons. When the default is checked
-  //   append 'checked' too
-  // - labelplacement parameter is WFM_LABEL_AFTER for checkboxes as label has to be placed after the input field
-  WiFiManagerParameter custom_textLight("<p style=\"border-top: 1px black solid;padding: 5px;margin-top: 10px;\"><b>Light Settings</b></p>");
-  char customhtmllight[] = "type='checkbox'";
-  if (sensorLight) {
-    strcat(customhtmllight, " checked");
-  }
-  WiFiManagerParameter p_sensorLight("sensorlight", "Disable LED indicator the night", "T", 2, customhtmllight, WFM_LABEL_AFTER);
-
-  // Invert input data PORTB
-  WiFiManagerParameter custom_textInputDataPortB("<p style=\"border-top: 1px black solid;padding: 5px;margin-top: 10px;\"><b>Input data PortB</b></p>");
-  WiFiManagerParameter p_invertInputDataPortB("invertInputDataPortB", "invert data PORTB", "T", 2, "type='checkbox' checked", WFM_LABEL_AFTER);
-
-  char convertedValue2[5];
-  WiFiManagerParameter custom_textDelayPush("<p style=\"border-top: 1px black solid;padding: 5px;margin-top: 10px;\"><b>Command PUSH</b></p>");
-  sprintf(convertedValue2, "%d", delayPush);
-  WiFiManagerParameter p_delayPush("delayPush", "Pressure duration in milliseconds (0 to 9999)", convertedValue2, 5);
-
-  // Just a quick hint
   WiFiManagerParameter p_hint("<small>*Hint: if you want to reuse the currently active WiFi credentials, leave SSID and Password fields empty</small>");
  
 
@@ -256,37 +205,7 @@ void clearConfig() {
   wifiManager.addParameter(&p_static_gw);
   wifiManager.addParameter(&p_static_sn);
   wifiManager.addParameter(&p_static_dns);
-  
-  wifiManager.addParameter(&custom_textServer);
-  wifiManager.addParameter(&p_gladys_server);
-  wifiManager.addParameter(&p_gladys_port);
-  wifiManager.addParameter(&p_gladys_token);
-
-  wifiManager.addParameter(&custom_textI2C);
-  wifiManager.addParameter(&p_I2C_SDA_PIN);
-  wifiManager.addParameter(&p_I2C_SCL_PIN);
-  wifiManager.addParameter(&p_I2C_ADDR);
-  wifiManager.addParameter(&p_interruptPin);
-
-  wifiManager.addParameter(&custom_textDelayPush);
-  wifiManager.addParameter(&p_delayPush);
- 
-  wifiManager.addParameter(&custom_textDevice);
-  wifiManager.addParameter(&p_ID_device1);
-  wifiManager.addParameter(&p_ID_device2);
-  wifiManager.addParameter(&p_ID_device3);
-  wifiManager.addParameter(&p_ID_device4);
-  wifiManager.addParameter(&p_ID_device5);
-  wifiManager.addParameter(&p_ID_device6);
-  wifiManager.addParameter(&p_ID_device7);
-  wifiManager.addParameter(&p_ID_device8);
-
-  wifiManager.addParameter(&custom_textLight);
-  wifiManager.addParameter(&p_sensorLight);
-
-  wifiManager.addParameter(&custom_textInputDataPortB);
-  wifiManager.addParameter(&p_invertInputDataPortB);
-  
+   
   // Sets timeout in seconds until configuration portal gets turned off.
   // If not specified device will remain in configuration mode until
   // switched off via webserver or device is restarted.
@@ -301,7 +220,7 @@ void clearConfig() {
   } else {
     // If you get here you have connected to the WiFi
     Serial.println("Connected...yeey :)");
-    blinkLED(0,0,1);
+    blinkLED(0,0,1,0.5);
 
     // Getting posted form values and overriding local variables parameters
     // Config file is written regardless the connection state
@@ -310,30 +229,11 @@ void clearConfig() {
     strcpy(static_sn, p_static_sn.getValue());
     strcpy(static_dns, p_static_dns.getValue());
 
-    strcpy(gladys_server, p_gladys_server.getValue());
-    strcpy(gladys_port, p_gladys_port.getValue());
-    strcpy(gladys_token, p_gladys_token.getValue());
-    sensorLight = (strncmp(p_sensorLight.getValue(), "T", 1) == 0);
-    I2C_SDA_PIN = atoi(p_I2C_SDA_PIN.getValue());
-    I2C_SCL_PIN = atoi(p_I2C_SCL_PIN.getValue());
-    I2C_ADDR = atoi(p_I2C_ADDR.getValue());
-    interruptPin = atoi(p_interruptPin.getValue());
-    invertInputDataPortB = (strncmp(p_invertInputDataPortB.getValue(), "T", 1) == 0);
-    allDeviceA[0].id = atoi(p_ID_device1.getValue());
-    allDeviceA[1].id = atoi(p_ID_device2.getValue());
-    allDeviceA[2].id = atoi(p_ID_device3.getValue());
-    allDeviceA[3].id = atoi(p_ID_device4.getValue());
-    allDeviceA[4].id = atoi(p_ID_device5.getValue());
-    allDeviceA[5].id = atoi(p_ID_device6.getValue());
-    allDeviceA[6].id = atoi(p_ID_device7.getValue());
-    allDeviceA[7].id = atoi(p_ID_device8.getValue());
-    delayPush = atoi(p_delayPush.getValue());
-
-    blinkLED(0, 0, 0);
+    blinkLED(0, 0, 0, 0.5);
     black();
     // Writing JSON config file to flash for next boot
     Serial.println("Save data....");
-    if (writeConfigFile()) {
+    if (writeNetworkConfigFile()) {
       Serial.println("data saved :) !");
       blue();
       delay(1000);
@@ -351,7 +251,7 @@ void clearConfig() {
 void resetConfig(){
   WiFiManager wifiManager;
   wifiManager.resetSettings();
-  blinkLED(1,0,0);
+  blinkLED(1,0,0,0.2);
   delay(3000);
   ESP.reset();  
 }
@@ -370,7 +270,7 @@ void setup() {
   // Initailise Light sensor pin
   pinMode(LIGHT_PIN, INPUT);
 
-  blinkLED(0, 1, 0);
+  blinkLED(0, 1, 0, 0.5);
 
   button.attachDoubleClick(displayData);            // link the function to be called on a doubleclick event.
   button.attachClick(debugState);                  // link the function to be called on a singleclick event.
@@ -381,8 +281,8 @@ void setup() {
   bool result = SPIFFS.begin();
   Serial.println("SPIFFS opened: " + result);
 
-  if (!readConfigFile()) {
-    Serial.println("Failed to read configuration file, using default values");
+  if (!readConfigNetworkFile) {
+    Serial.println("Failed to read network configuration file !!!");
     initialConfig = true;
   }
 
@@ -403,7 +303,7 @@ void setup() {
         Serial.println("Init static IP");
       }
       
-      blinkLED(0, 1, 0); // Turn LED off as we are not in configuration mode.
+      blinkLED(0, 1, 0, 0.5); // Turn LED off as we are not in configuration mode.
       WiFi.mode(WIFI_STA); // Force to station mode because if device was switched off while in access point mode it will start up next time in access point mode.
       unsigned long startedAt = millis();
       Serial.print("After waiting ");
@@ -416,9 +316,10 @@ void setup() {
   }
 
   if (WiFi.status() != WL_CONNECTED) {
-    blinkLED(1, 0, 0);
+    blinkLED(1, 0, 0, 0.5);
     Serial.println("Failed to connect, finishing setup anyway");
   } else {
+    initialParam = readConfigFile();
 
     //Define I2C pins
     Wire.begin(I2C_SDA_PIN,I2C_SCL_PIN);
@@ -443,15 +344,30 @@ void setup() {
     // And we setup a callback for the arduino INT handler.
     attachInterrupt(digitalPinToInterrupt(interruptPin), handleInterrupt, CHANGE);
                 
-    blinkLED(0, 0, 0);
-    white();
+    blinkLED(0, 0, 0, 0.5);
+    if(!initialParam) {
+      blinkLED(1,0,1,0.5);
+    } else {
+      white();
+    }
     Serial.print("Local ip: ");
     Serial.println(WiFi.localIP());
     //all the sites which will be available
     server.on( "/", getHeatindex );
     server.on( "/scanI2C", scanPorts );
     server.on( "/checkport", checkPort );
-    server.on( "/readPort", ajax_readPortB );
+    server.on( "/readPort", checkPort );
+    server.on( "/sendconfig", sendConfig );
+    server.on( "/saveconfig", saveConfig );
+    server.on( "/readStatePort", sendLastValue );
+
+    server.serveStatic("/js", SPIFFS, "/js");
+    server.serveStatic("/css", SPIFFS, "/css");
+    server.serveStatic("/fonts", SPIFFS, "/fonts");
+    server.serveStatic("/sys", SPIFFS, "/index.html");
+    server.serveStatic("/config", SPIFFS, "/config.html");
+    server.serveStatic("/command", SPIFFS, "/gear.html");
+  
     server.begin();
     espStart = 1;
   }
@@ -469,7 +385,7 @@ void loop() {
   if (initialConfig) {
     clearConfig();
   }
-  if (espStart){
+  if (espStart && initialParam){
     readPortB();
     espStart = 0;
   }
@@ -480,12 +396,15 @@ void loop() {
   button.tick();
   delay(10);
   
-  bool sensor = sensorStateLCR();
- 
-  if(sensor && !debugMode){
-    white();
-  } else {
-    black();
+  sensor = sensorStateLCR();
+  if(!debugMode){
+    if(initialParam){
+      if(sensor){
+          white();
+      } else {
+        black();
+      }
+    }
   }
     
   if(interruptCounter > 0){
@@ -520,7 +439,9 @@ void readPortB(){
           stateBit = !stateBit;
         }
         //Send to Gladys
-        sendStateToGladys(stateBit, allDeviceA[i].id); 
+        if(initialParam) {
+          sendStateToGladys(stateBit, allDeviceA[i].id); 
+        }
       }
     }
     lastPortB = statePortB;
@@ -531,15 +452,14 @@ bool sensorStateLCR(){
   if(sensorLight){
     lightValue = analogRead(LIGHT_PIN);
     if(lightValue > 300){
-      sensorState = 1;
+      sensorState = true;
     } else {
-      sensorState = 0;
+      sensorState = false;
     }
   } else {
-    sensorState = 1;
+    sensorState = true;
   }
-
-    return sensorState;
+  return sensorState;
 }
 
 int sendStateToGladys (bool realState, int deviceTypeId){
@@ -548,7 +468,7 @@ int sendStateToGladys (bool realState, int deviceTypeId){
   bool sensor = sensorStateLCR();
   
   if(sensor && !debugMode){
-    blinkLED(1, 1, 1);
+    blinkLED(1, 1, 1, 0.2);
   } else {
     black();
   }
@@ -567,17 +487,17 @@ int sendStateToGladys (bool realState, int deviceTypeId){
   http.end();
   
   if(!debugMode){
-    blinkLED(0,0,0);
+    blinkLED(0,0,0,0.5);
   } else {
-    blinkLED(0,1,0);
+    blinkLED(0,1,0,0.1);
   }
   
   return httpCode;
 }
 
-bool readConfigFile() {
+bool readConfigNetworkFile() {
   // this opens the config file in read-mode
-  File f = SPIFFS.open(CONFIG_FILE, "r");
+  File f = SPIFFS.open(CONFIG_FILE_NETWORK, "r");
 
   if (!f) {
     Serial.println("Configuration file not found");
@@ -622,7 +542,44 @@ bool readConfigFile() {
     if (json.containsKey("static_dns")) {
       strcpy(static_dns, json["static_dns"]);
     }
-       
+  }
+  Serial.println("\nConfig file was successfully parsed");
+  return true;
+}
+
+bool readConfigFile() {
+  Serial.println("Read configuration parameter file");
+  // this opens the config file in read-mode
+  File f = SPIFFS.open(CONFIG_FILE, "r");
+
+  if (!f) {
+    Serial.println("Configuration file not found");
+    return false;
+  } else {
+    // we could open the file
+    size_t size = f.size();
+    // Allocate a buffer to store contents of the file.
+    std::unique_ptr<char[]> buf(new char[size]);
+
+    // Read and store file contents in buf
+    f.readBytes(buf.get(), size);
+    // Closing file
+    f.close();
+    // Using dynamic JSON buffer which is not the recommended memory model, but anyway
+    // See https://github.com/bblanchon/ArduinoJson/wiki/Memory%20model
+
+    DynamicJsonBuffer jsonBuffer;
+    // Parse JSON string
+    JsonObject& json = jsonBuffer.parseObject(buf.get());
+    // Test if parsing succeeds.
+    if (!json.success()) {
+      Serial.println("JSON parseObject() failed");
+      return false;
+    }
+    json.printTo(Serial);
+
+    // Parse all config file parameters, override
+    // local config variables with parsed values     
     if (json.containsKey("gladys_server")) {
       strcpy(gladys_server, json["gladys_server"]);
     }
@@ -657,6 +614,30 @@ bool readConfigFile() {
       I2C_ADDR = json["I2C_ADDR"];
     }
     
+    if (json.containsKey("Group_name1")) {
+      strcpy(groupName[1], json["Group_name1"]);
+    }
+    if (json.containsKey("Group_name2")) {
+      strcpy(groupName[2], json["Group_name2"]);
+    }
+    if (json.containsKey("Group_name3")) {
+      strcpy(groupName[3], json["Group_name3"]);
+    }
+    if (json.containsKey("Group_name4")) {
+      strcpy(groupName[4], json["Group_name4"]);
+    }
+    if (json.containsKey("Group_name5")) {
+      strcpy(groupName[5], json["Group_name5"]);
+    }
+    if (json.containsKey("Group_name6")) {
+      strcpy(groupName[6], json["Group_name6"]);
+    }
+    if (json.containsKey("Group_name7")) {
+      strcpy(groupName[7], json["Group_name7"]);
+    }
+    if (json.containsKey("Group_name8")) {
+      strcpy(groupName[8], json["Group_name8"]);
+    }
     
     if (json.containsKey("ID_device1")) {
       allDeviceA[0].id = json["ID_device1"];
@@ -682,12 +663,115 @@ bool readConfigFile() {
     if (json.containsKey("ID_device8")) {
       allDeviceA[7].id = json["ID_device8"];
     }
+
+    if (json.containsKey("NAME_device1")) {
+      strcpy(allDeviceA[0].deviceName, json["NAME_device1"]);
+    }
+    if (json.containsKey("NAME_device2")) {
+      strcpy(allDeviceA[1].deviceName, json["NAME_device2"]);
+    }
+    if (json.containsKey("NAME_device3")) {
+      strcpy(allDeviceA[2].deviceName, json["NAME_device3"]);
+    }
+    if (json.containsKey("NAME_device4")) {
+      strcpy(allDeviceA[3].deviceName, json["NAME_device4"]);
+    }
+    if (json.containsKey("NAME_device5")) {
+      strcpy(allDeviceA[4].deviceName, json["NAME_device5"]);
+    }
+    if (json.containsKey("NAME_device6")) {
+      strcpy(allDeviceA[5].deviceName, json["NAME_device6"]);
+    }
+    if (json.containsKey("NAME_device7")) {
+      strcpy(allDeviceA[6].deviceName, json["NAME_device7"]);
+    }
+    if (json.containsKey("NAME_device8")) {
+      strcpy(allDeviceA[7].deviceName, json["NAME_device8"]);
+    }
+
+    if (json.containsKey("Group_device1")) {
+      allDeviceA[0].group = json["Group_device1"];
+    }
+    if (json.containsKey("Group_device2")) {
+      allDeviceA[1].group = json["Group_device2"];
+    }
+    if (json.containsKey("Group_device3")) {
+      allDeviceA[2].group = json["Group_device3"];
+    }
+    if (json.containsKey("Group_device4")) {
+      allDeviceA[3].group = json["Group_device4"];
+    }
+    if (json.containsKey("Group_device5")) {
+      allDeviceA[4].group = json["Group_device5"];
+    }
+    if (json.containsKey("Group_device6")) {
+      allDeviceA[5].group = json["Group_device6"];
+    }
+    if (json.containsKey("Group_device7")) {
+      allDeviceA[6].group = json["Group_device7"];
+    }
+    if (json.containsKey("Group_device8")) {
+      allDeviceA[7].group = json["Group_device8"];
+    }
+
+    if (json.containsKey("TYPE_device1")) {
+      allDeviceA[0].type = json["TYPE_device1"];
+    }
+    if (json.containsKey("TYPE_device2")) {
+      allDeviceA[1].type = json["TYPE_device2"];
+    }
+    if (json.containsKey("TYPE_device3")) {
+      allDeviceA[2].type = json["TYPE_device3"];
+    }
+    if (json.containsKey("TYPE_device4")) {
+      allDeviceA[3].type = json["TYPE_device4"];
+    }
+    if (json.containsKey("TYPE_device5")) {
+      allDeviceA[4].type = json["TYPE_device5"];
+    }
+    if (json.containsKey("TYPE_device6")) {
+      allDeviceA[5].type = json["TYPE_device6"];
+    }
+    if (json.containsKey("TYPE_device7")) {
+      allDeviceA[6].type = json["TYPE_device7"];
+    }
+    if (json.containsKey("TYPE_device8")) {
+      allDeviceA[7].type = json["TYPE_device8"];
+    }
     
     if (json.containsKey("delayPush")) {
       delayPush = json["delayPush"];
     }
   }
   Serial.println("\nConfig file was successfully parsed");
+  return true;
+}
+
+bool writeNetworkConfigFile() {
+  Serial.println("Saving network config file");
+
+  DynamicJsonBuffer jsonBuffer;
+  JsonObject& json = jsonBuffer.createObject();
+
+  // JSONify local configuration parameters
+  json["static_ip"] = static_ip;
+  json["static_gw"] = static_gw;
+  json["static_sn"] = static_sn;
+  json["static_dns"] = static_dns;
+
+  // Open file for writing
+  File f = SPIFFS.open(CONFIG_FILE_NETWORK, "w");
+  if (!f) {
+    Serial.println("Failed to open config file for writing");
+    return false;
+  }
+
+  json.prettyPrintTo(Serial);
+  // Write data to file and close it
+  json.printTo(f);
+  f.close();
+
+  Serial.println("\nNetwork config file was successfully saved");
   return true;
 }
 
@@ -698,11 +782,7 @@ bool writeConfigFile() {
   JsonObject& json = jsonBuffer.createObject();
 
   // JSONify local configuration parameters
-  json["static_ip"] = static_ip;
-  json["static_gw"] = static_gw;
-  json["static_sn"] = static_sn;
-  json["static_dns"] = static_dns;
-    
+   
   json["gladys_server"] = gladys_server;
   json["gladys_port"] = gladys_port;
   json["gladys_token"] = gladys_token;
@@ -712,6 +792,15 @@ bool writeConfigFile() {
   json["I2C_SDA_PIN"] = I2C_SDA_PIN;
   json["I2C_SCL_PIN"] = I2C_SCL_PIN;
   json["I2C_ADDR"] = I2C_ADDR;
+
+  json["Group_name1"] = groupName[1];
+  json["Group_name2"] = groupName[2];
+  json["Group_name3"] = groupName[3];
+  json["Group_name4"] = groupName[4];
+  json["Group_name5"] = groupName[5];
+  json["Group_name6"] = groupName[6];
+  json["Group_name7"] = groupName[7];
+  json["Group_name8"] = groupName[8];
   
   json["ID_device1"] = allDeviceA[0].id;
   json["ID_device2"] = allDeviceA[1].id;
@@ -721,6 +810,33 @@ bool writeConfigFile() {
   json["ID_device6"] = allDeviceA[5].id;
   json["ID_device7"] = allDeviceA[6].id;
   json["ID_device8"] = allDeviceA[7].id;
+
+  json["NAME_device1"] = allDeviceA[0].deviceName;
+  json["NAME_device2"] = allDeviceA[1].deviceName;
+  json["NAME_device3"] = allDeviceA[2].deviceName;
+  json["NAME_device4"] = allDeviceA[3].deviceName;
+  json["NAME_device5"] = allDeviceA[4].deviceName;
+  json["NAME_device6"] = allDeviceA[5].deviceName;
+  json["NAME_device7"] = allDeviceA[6].deviceName;
+  json["NAME_device8"] = allDeviceA[7].deviceName;
+
+  json["TYPE_device1"] = allDeviceA[0].type;
+  json["TYPE_device2"] = allDeviceA[1].type;
+  json["TYPE_device3"] = allDeviceA[2].type;
+  json["TYPE_device4"] = allDeviceA[3].type;
+  json["TYPE_device5"] = allDeviceA[4].type;
+  json["TYPE_device6"] = allDeviceA[5].type;
+  json["TYPE_device7"] = allDeviceA[6].type;
+  json["TYPE_device8"] = allDeviceA[7].type;
+  
+  json["Group_device1"] = allDeviceA[0].group;
+  json["Group_device2"] = allDeviceA[1].group;
+  json["Group_device3"] = allDeviceA[2].group;
+  json["Group_device4"] = allDeviceA[3].group;
+  json["Group_device5"] = allDeviceA[4].group;
+  json["Group_device6"] = allDeviceA[5].group;
+  json["Group_device7"] = allDeviceA[6].group;
+  json["Group_device8"] = allDeviceA[7].group;
 
   json["delayPush"] = delayPush;
 
@@ -774,7 +890,7 @@ void displayData(){
     Serial.println("\nCommand Push\n  pressure duration: " + String(delayPush) + " milliseconds");
     Serial.print("\nID Device: \n");
     for (int i = 0; i < 8; i++){
-      Serial.println("   " + String(i+1) + ":  -Pin In: " + String(allDeviceA[i].pinIn + 1) + "  -ID: " + allDeviceA[i].id + "  -Pin Out: " + String(allDeviceA[i].pinOut + 1));
+      Serial.println("   " + String(i+1) + ":  -Pin In: " + String(allDeviceA[i].pinIn + 1) + "  -ID: " + allDeviceA[i].id + "  -Pin Out: " + String(allDeviceA[i].pinOut + 1) + "  -Name: " + String(allDeviceA[i].deviceName) + "  -Type: " + allDeviceA[i].type);
     }
     Serial.print("\nInvert input data PORTB: ");
     if(invertInputDataPortB){
@@ -795,9 +911,9 @@ void displayData(){
 void debugState(){
   debugMode = !(debugMode);
   if(!debugMode){
-    blinkLED(0,0,0);
+    blinkLED(0,0,0,0.5);
   } else {
-    blinkLED(0,1,0);
+    blinkLED(0,1,0,0.1);
   }
 }
 
@@ -848,7 +964,7 @@ bool changeState(int deviceConcerned, String cmdExec, bool currentState){
   //realState = mcp.digitalRead(allDeviceA[deviceConcerned].pinIn);  //not work why ????
   //read state all port B
   byte statePortB = mcp.readGPIO(1);
-  realState = bitRead(statePortB, (allDeviceA[deviceConcerned].pinIn - 7));
+  realState = bitRead(statePortB, (allDeviceA[deviceConcerned].pinIn - 8));
   if(invertInputDataPortB) {
     realState = !realState;
   }
@@ -1005,6 +1121,10 @@ String check_if_exist_I2C() {
 }
 
 void checkPort(){
+  bool modeAjax = false;
+  if (server.hasArg("mode")) { //just do the checks if the parameter is available
+    modeAjax = server.arg("mode");
+  }
   if(debugMode){
     String sendWebPage = "<table><tbody>";
     //read state all port B
@@ -1018,30 +1138,350 @@ void checkPort(){
       sendWebPage += "<tr><td> Port: " + String(i) + " ID: " + String(allDeviceA[i].id) + "</td><td>" + stateBit + "</td></tr>";
     }
     sendWebPage += "</tbody></table>";
-    String pageFinal = STATE_page;
-    pageFinal.replace("%%DATA%%", sendWebPage);
-    server.send(200, "text/html", pageFinal);   
+    if(modeAjax) {
+      server.send(200, "text/html", sendWebPage);   
+    } else { 
+      String pageFinal = STATE_page;
+      pageFinal.replace("%%DATA%%", sendWebPage);
+      server.send(200, "text/html", pageFinal);
+    }   
   } else {
     server.send(404, "text/plain", "404: Not found");
   }
 }
 
-void ajax_readPortB(){
-  if(debugMode){
-    String sendWebPage = "<table><tbody>";
-    //read state all port B
-    byte statePortB = mcp.readGPIO(1);
-    //search for the port that has changed
-    for (int i=0; i<8; i++){
-      byte stateBit = bitRead(statePortB, i);
-      if(invertInputDataPortB) {
-        stateBit = !stateBit;
-      }
-      sendWebPage += "<tr><td> Port: " + String(i) + " ID: " + String(allDeviceA[i].id) + "</td><td>" + stateBit + "</td></tr>";
+void sendConfig(){
+  bool stateCommand = false;
+  if(server.hasArg("mode")) {
+    if(server.arg("mode") == "direct") {
+      stateCommand = true;       
     }
-    sendWebPage += "</tbody></table>";
-    server.send(200, "text/html", sendWebPage);   
-  } else {
-    server.send(404, "text/plain", "404: Not found");
   }
+  if(debugMode || stateCommand){
+    Serial.println("Generate config file");
+    // Generate a new UUID
+    ESP8266TrueRandom.uuid(uuidNumber);
+    uuidStr = ESP8266TrueRandom.uuidToString(uuidNumber);
+    DynamicJsonBuffer jsonBuffer;
+    JsonObject& json = jsonBuffer.createObject();
+
+    if(!stateCommand && debugMode) {
+      json["i2cSda"] = I2C_SDA_PIN;
+      json["i2cScl"] = I2C_SCL_PIN;
+      json["i2cAddr"] = I2C_ADDR;
+      json["i2cIntB"] = interruptPin;
+  
+      json["delayPush"] = delayPush;
+      json["sensorLight"] = sensorLight;
+      json["invertInputDataPortB"] = invertInputDataPortB;
+      
+      json["gladys_server"] = gladys_server;
+      json["gladys_port"] = gladys_port;
+    }
+    
+    json["gladys_token"] = gladys_token; 
+  
+    json["groupName1"] = groupName[1];
+    json["groupName2"] = groupName[2]; 
+    json["groupName3"] = groupName[3]; 
+    json["groupName4"] = groupName[4]; 
+    json["groupName5"] = groupName[5]; 
+    json["groupName6"] = groupName[6]; 
+    json["groupName7"] = groupName[7]; 
+    json["groupName8"] = groupName[8];
+
+    
+    json["deviceId1"] = allDeviceA[0].id; 
+    json["deviceId2"] = allDeviceA[1].id; 
+    json["deviceId3"] = allDeviceA[2].id; 
+    json["deviceId4"] = allDeviceA[3].id; 
+    json["deviceId5"] = allDeviceA[4].id; 
+    json["deviceId6"] = allDeviceA[5].id; 
+    json["deviceId7"] = allDeviceA[6].id; 
+    json["deviceId8"] = allDeviceA[7].id; 
+  
+    json["deviceName1"] = allDeviceA[0].deviceName; 
+    json["deviceName2"] = allDeviceA[1].deviceName; 
+    json["deviceName3"] = allDeviceA[2].deviceName; 
+    json["deviceName4"] = allDeviceA[3].deviceName; 
+    json["deviceName5"] = allDeviceA[4].deviceName; 
+    json["deviceName6"] = allDeviceA[5].deviceName; 
+    json["deviceName7"] = allDeviceA[6].deviceName; 
+    json["deviceName8"] = allDeviceA[7].deviceName; 
+  
+    json["deviceGroup1"] = allDeviceA[0].group; 
+    json["deviceGroup2"] = allDeviceA[1].group; 
+    json["deviceGroup3"] = allDeviceA[2].group; 
+    json["deviceGroup4"] = allDeviceA[3].group; 
+    json["deviceGroup5"] = allDeviceA[4].group; 
+    json["deviceGroup6"] = allDeviceA[5].group; 
+    json["deviceGroup7"] = allDeviceA[6].group; 
+    json["deviceGroup8"] = allDeviceA[7].group; 
+  
+    json["deviceType1"] = allDeviceA[0].type; 
+    json["deviceType2"] = allDeviceA[1].type; 
+    json["deviceType3"] = allDeviceA[2].type; 
+    json["deviceType4"] = allDeviceA[3].type; 
+    json["deviceType5"] = allDeviceA[4].type; 
+    json["deviceType6"] = allDeviceA[5].type; 
+    json["deviceType7"] = allDeviceA[6].type; 
+    json["deviceType8"] = allDeviceA[7].type;
+    
+    if(!stateCommand && debugMode) {
+      json["secretKey"] = uuidStr;
+    }
+    
+    String config_json;
+    json.prettyPrintTo(config_json);
+    sendHeaderAccess();
+    server.send(200, "text/json", config_json);
+        
+  } else {
+    sendHeaderAccess();
+    server.send(404, "text/json", "{\"error\":\"Access denied\"}");
+  }
+  
+}
+
+void sendHeaderAccess() {
+    server.sendHeader("Access-Control-Allow-Origin", "*");
+    server.sendHeader("Access-Control-Max-Age", "10000");
+    server.sendHeader("Access-Control-Allow-Methods", "POST,GET,OPTIONS");
+    server.sendHeader("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");  
+}
+
+void saveConfig(){
+  bool configOk = false;
+  Serial.println("Receive data");
+  if(debugMode && server.args() > 0){
+    if(server.hasArg("secretKey")) {
+      if(server.arg("secretKey") == uuidStr) {
+        Serial.println("secret key is ok");
+        String temp;
+        if (server.hasArg("gladys_server")) {
+          temp = server.arg("gladys_server");
+          temp.toCharArray(gladys_server, temp.length()+1); 
+          //strcpy(gladys_server, server.arg("gladys_server"));
+        }
+    
+        if (server.hasArg("gladys_port")) {
+          temp = server.arg("gladys_port"); 
+          temp.toCharArray(gladys_port, temp.length()+1); 
+          //strcpy(gladys_port, server.arg("gladys_port"));;
+        }
+    
+        if (server.hasArg("gladys_token")) {
+          temp = server.arg("gladys_token"); 
+          temp.toCharArray(gladys_token, temp.length()+1);
+        }
+    
+        if (server.hasArg("invertInputDataPortB")) {
+          invertInputDataPortB = server.arg("invertInputDataPortB");
+        } else {
+          invertInputDataPortB = false;
+        }
+    
+        if (server.hasArg("sensorLight")) {
+          sensorLight = server.arg("sensorLight");
+        } else {
+          sensorLight = false;
+        }
+        
+        if (server.hasArg("i2cIntB")) {
+          interruptPin = server.arg("i2cIntB").toInt();
+        }
+        
+        if (server.hasArg("i2cSda")) {
+          I2C_SDA_PIN = server.arg("i2cSda").toInt();
+        }
+        if (server.hasArg("i2cScl")) {
+          I2C_SCL_PIN = server.arg("i2cScl").toInt();
+        }
+        if (server.hasArg("i2cAddr")) {
+          I2C_ADDR = server.arg("i2cAddr").toInt();
+        }
+        
+        if (server.hasArg("groupName1")) {
+          temp = server.arg("groupName1"); 
+          temp.toCharArray(groupName[1], temp.length()+1);
+          //groupName[0] = server.arg("Group_name1");
+        }
+        
+        if (server.hasArg("groupName2")) {
+          temp = server.arg("groupName2"); 
+          temp.toCharArray(groupName[2], temp.length()+1);
+          //groupName[1] = server.arg("Group_name2");
+        }
+        if (server.hasArg("groupName3")) {
+          temp = server.arg("groupName3"); 
+          temp.toCharArray(groupName[3], temp.length()+1);
+          //groupName[2] = server.arg("Group_name3");
+        }
+        if (server.hasArg("groupName4")) {
+          temp = server.arg("groupName4"); 
+          temp.toCharArray(groupName[4], temp.length()+1);
+          //groupName[3] = server.arg("Group_name4");
+        }
+        if (server.hasArg("groupName5")) {
+          temp = server.arg("groupName5"); 
+          temp.toCharArray(groupName[5], temp.length()+1);
+          //groupName[4] = server.arg("Group_name5");
+        }
+        if (server.hasArg("groupName6")) {
+          temp = server.arg("groupName6"); 
+          temp.toCharArray(groupName[6], temp.length()+1);
+          //groupName[5] = server.arg("Group_name6");
+        }
+        if (server.hasArg("groupName7")) {
+          temp = server.arg("groupName7"); 
+          temp.toCharArray(groupName[7], temp.length()+1);
+          //groupName[6] = server.arg("Group_name7");
+        }
+        if (server.hasArg("groupName8")) {
+          temp = server.arg("groupName8"); 
+          temp.toCharArray(groupName[8], temp.length()+1);
+          //groupName[7] = server.arg("Group_name8");
+        }
+        
+        if (server.hasArg("deviceId1")) {
+          allDeviceA[0].id = server.arg("deviceId1").toInt();
+        }
+        if (server.hasArg("deviceId2")) {
+          allDeviceA[1].id = server.arg("deviceId2").toInt();
+        }
+        if (server.hasArg("deviceId3")) {
+          allDeviceA[2].id = server.arg("deviceId3").toInt();
+        }
+        if (server.hasArg("deviceId4")) {
+          allDeviceA[3].id = server.arg("deviceId4").toInt();
+        }
+        if (server.hasArg("deviceId5")) {
+          allDeviceA[4].id = server.arg("deviceId5").toInt();
+        }
+        if (server.hasArg("deviceId6")) {
+          allDeviceA[5].id = server.arg("deviceId6").toInt();
+        }
+        if (server.hasArg("deviceId7")) {
+          allDeviceA[6].id = server.arg("deviceId7").toInt();
+        }
+        if (server.hasArg("deviceId8")) {
+          allDeviceA[7].id = server.arg("deviceId8").toInt();
+        }
+    
+        if (server.hasArg("deviceName1")) {
+          temp = server.arg("deviceName1"); 
+          temp.toCharArray(allDeviceA[0].deviceName, temp.length()+1);
+          //allDeviceA[0].deviceName = server.arg("NAME_device1");
+        }
+        if (server.hasArg("deviceName2")) {
+          temp = server.arg("deviceName2"); 
+          temp.toCharArray(allDeviceA[1].deviceName, temp.length()+1);
+          //allDeviceA[1].deviceName = server.arg("NAME_device2");
+        }
+        if (server.hasArg("deviceName3")) {
+          temp = server.arg("deviceName3"); 
+          temp.toCharArray(allDeviceA[2].deviceName, temp.length()+1);
+          //allDeviceA[2].deviceName = server.arg("NAME_device3");
+        }
+        if (server.hasArg("deviceName4")) {
+          temp = server.arg("deviceName4"); 
+          temp.toCharArray(allDeviceA[3].deviceName, temp.length()+1);
+          //allDeviceA[3].deviceName = server.arg("NAME_device4");
+        }
+        if (server.hasArg("deviceName5")) {
+          temp = server.arg("deviceName5"); 
+          temp.toCharArray(allDeviceA[4].deviceName, temp.length()+1);
+          //allDeviceA[4].deviceName = server.arg("NAME_device5");
+        }
+        if (server.hasArg("deviceName6")) {
+          temp = server.arg("deviceName6"); 
+          temp.toCharArray(allDeviceA[5].deviceName, temp.length()+1);
+          //allDeviceA[5].deviceName = server.arg("NAME_device6");
+        }
+        if (server.hasArg("deviceName7")) {
+          temp = server.arg("deviceName7"); 
+          temp.toCharArray(allDeviceA[6].deviceName, temp.length()+1);
+          //allDeviceA[6].deviceName = server.arg("NAME_device7");
+        }
+        if (server.hasArg("deviceName8")) {
+          temp = server.arg("deviceName8"); 
+          temp.toCharArray(allDeviceA[7].deviceName, temp.length()+1);
+          //allDeviceA[7].deviceName = server.arg("NAME_device8");
+        }
+    
+        if (server.hasArg("deviceGroup1")) {
+          allDeviceA[0].group = server.arg("deviceGroup1").toInt();
+        }
+        if (server.hasArg("deviceGroup2")) {
+          allDeviceA[1].group = server.arg("deviceGroup2").toInt();
+        }
+        if (server.hasArg("deviceGroup3")) {
+          allDeviceA[2].group = server.arg("deviceGroup3").toInt();
+        }
+        if (server.hasArg("deviceGroup4")) {
+          allDeviceA[3].group = server.arg("deviceGroup4").toInt();
+        }
+        if (server.hasArg("deviceGroup5")) {
+          allDeviceA[4].group = server.arg("deviceGroup5").toInt();
+        }
+        if (server.hasArg("deviceGroup6")) {
+          allDeviceA[5].group = server.arg("deviceGroup6").toInt();
+        }
+        if (server.hasArg("deviceGroup7")) {
+          allDeviceA[6].group = server.arg("deviceGroup7").toInt();
+        }
+        if (server.hasArg("deviceGroup8")) {
+          allDeviceA[7].group = server.arg("deviceGroup8").toInt();
+        }
+    
+        if (server.hasArg("deviceType1")) {
+          allDeviceA[0].type = server.arg("deviceType1").toInt();
+        }
+        if (server.hasArg("deviceType2")) {
+          allDeviceA[1].type = server.arg("deviceType2").toInt();
+        }
+        if (server.hasArg("deviceType3")) {
+          allDeviceA[2].type = server.arg("deviceType3").toInt();
+        }
+        if (server.hasArg("deviceType4")) {
+          allDeviceA[3].type = server.arg("deviceType4").toInt();
+        }
+        if (server.hasArg("deviceType5")) {
+          allDeviceA[4].type = server.arg("deviceType5").toInt();
+        }
+        if (server.hasArg("deviceType6")) {
+          allDeviceA[5].type = server.arg("deviceType6").toInt();
+        }
+        if (server.hasArg("deviceType7")) {
+          allDeviceA[6].type = server.arg("deviceType7").toInt();
+        }
+        if (server.hasArg("deviceType8")) {
+          allDeviceA[7].type = server.arg("deviceType8").toInt();
+        }
+        
+        if (server.hasArg("delayPush")) {
+          delayPush = server.arg("delayPush").toInt();
+        }
+        writeConfigFile();
+        configOk = true;
+        initialParam = false;
+        blinkLED(1,0,1,0.5);
+      }
+    }
+  }
+  sendHeaderAccess();
+  if (configOk){  
+    server.send(200, "text/json", "{\"state\":\"ok\"}");
+  } else {
+    server.send(404, "text/json", "{\"error\":\"Access denied\"}");
+  }
+}
+
+void sendLastValue() {
+  byte value_lastPortB = lastPortB;
+  if(invertInputDataPortB) {
+    value_lastPortB = ~value_lastPortB;
+  }
+  sendHeaderAccess();
+  server.send(200, "text/json", "{\"lastValue\":" + String(value_lastPortB) + "}"); 
 }

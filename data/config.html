@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!--jquery/3.1.1')-->
+    <script src="js/jquery.min.js"></script>
+    <!--bootstrap/3.4.1')-->
+    <script src="js/bootstrap.min.js"></script>
+    <link rel="stylesheet" href="css/bootstrap.min.css">
+    <title>Configuration</title>
+    <style>
+    .loader{
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(255,255,255,0.7);
+      z-index: 9999;     
+    }
+    .spin-loader {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 150px;
+      height: 150px;
+      margin: -75px 0 0 -75px;
+      border: 16px solid #f3f3f3;
+      border-radius: 50%;
+      border-top: 16px solid #3498db;
+      -webkit-animation: spin 2s linear infinite;
+      animation: spin 2s linear infinite;
+      background-color:white;
+    }
+    .text-loader {
+      left: 50%;
+      top: 50%;
+      position: absolute;
+      width: 150px;
+      height: 1em;
+      margin: -1em -75px;
+      display: block;
+      vertical-align: middle;
+      text-align: center;
+      line-height: 1em;
+    }
+    .button-loader {
+      position: absolute;
+      display: none;
+      left: 50%;
+      top: 50%;
+      width: 150px;
+      height: 150px;
+      margin: 80px -75px;
+      text-align: center;
+      font-size: 2em;
+      color: #4DB939;
+    }
+    .state-ok {
+      border-top: 16px solid #34FF0E;
+    }
+    .state-false {
+      border-top: 16px solid #FF552E;
+    }
+        
+    /* Safari */
+    @-webkit-keyframes spin {
+      0% { -webkit-transform: rotate(0deg); }
+      100% { -webkit-transform: rotate(360deg); }
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    .striped {
+      background-color: #f6f6f6;
+    }
+    </style>
+  </head>
+  <body> 
+    <div class="container">
+      <ol class="breadcrumb">
+        <li><a href="/sys"><span class="glyphicon glyphicon-home"></span></a></li>
+        <li class="active">Configuration</li>
+      </ol>
+      <div class="text-center">
+        <h1><span class="glyphicon glyphicon-cog"></span> Configuration</h1>
+        <p>v 3.0.0</p> 
+      </div>
+      <form onsubmit='return onSubmit(this)' method="post" enctype="multipart/form-data" action="saveconfig">
+        <div class="panel-group" id="accordion" role="tablist" aria-multiselectable="true">
+          <!--- Divers --->
+          <div class="panel panel-default">
+            <div class="panel-heading" role="tab" id="headingZero">
+              <h4 class="panel-title">
+                <a role="button" data-toggle="collapse" data-parent="#accordion" href="#collapseZero" aria-expanded="true" aria-controls="collapseZero">
+                  <span class="glyphicon glyphicon-pencil"></span> Divers
+                </a>
+              </h4>
+            </div>
+            <div id="collapseZero" class="panel-collapse collapse in" role="tabpanel" aria-labelledby="headingZero">
+              <div class="panel-body">
+                <fieldset class="legend-brdr-bttm">
+                <legend>I2C</legend>
+                <div class="form-group col-xs-12 col-sm-6 col-md-4 col-lg-3">
+                  <label for="i2cSda">SDA</label>
+                  <input type="text" class="form-control" name="i2cSda" id="i2cSda" placeholder="5" maxlength="2" value="5">
+                  <p class="help-block">Indiquez le numéro de pin</p>
+                </div>
+                <div class="form-group col-xs-12 col-sm-6 col-md-4 col-lg-3">
+                  <label for="i2cScl">SCL</label>
+                  <input type="text" class="form-control" name="i2cScl" id="i2cScl" placeholder="0" maxlength="2" value="0">
+                  <p class="help-block">Indiquez le numéro de pin</p>
+                </div>
+                <div class="form-group col-xs-12 col-sm-6 col-md-4 col-lg-3">
+                  <label for="i2cAddr">Adresse</label>
+                  <input type="text" class="form-control" name="i2cAddr" id="i2cAddr" placeholder="7" maxlength="2" value="7">
+                  <p class="help-block">(0 = 0x20 / 1 = 0x21 ...)</p>
+                </div>
+                <div class="form-group col-xs-12 col-sm-6 col-md-4 col-lg-3">
+                  <label for="i2cIntB">INT B</label>
+                  <input type="text" class="form-control" name="i2cIntB" id="i2cIntB" placeholder="0" maxlength="2" value="0">
+                  <p class="help-block">Indiquez le numéro de pin</p>
+                </div> 
+                </fieldset>
+                <fieldset class="legend-brdr-bttm">
+                <legend>Commandes</legend>
+                <div class="form-group col-xs-12 col-sm-6 col-md-4 col-lg-3">
+                  <label for="delayPush">PUSH</label>
+                  <input type="text" class="form-control" name="delayPush" id="delayPush" placeholder="300" maxlength="4" value="300">
+                  <p class="help-block">Durée de la pression en millisecondes (0 à 9999)</p>
+                </div>
+                <div class="form-group col-xs-12 col-sm-6 col-md-4 col-lg-3">
+                  <label for="sensorLight">Sensor</label>
+                  <div class="checkbox col-xs-12">
+                    <input type="checkbox" name="sensorLight" id="sensorLight" value="1">
+                    Désactiver la LED la nuit
+                  </div>
+                </div>
+                <div class="form-group col-xs-12 col-sm-6 col-md-4 col-lg-3">
+                  <label for="invertInputDataPortB">Port B</label>
+                  <div class="checkbox col-xs-12">
+                    <input type="checkbox" name="invertInputDataPortB" id="invertInputDataPortB" value="1">
+                    Inverser les états du port B
+                  </div>
+                </div>
+                </fieldset>            
+              </div>
+            </div>
+          </div>
+          <!--- Serveur --->
+          <div class="panel panel-default">
+            <div class="panel-heading" role="tab" id="heading0">
+              <h4 class="panel-title">
+                <a role="button" data-toggle="collapse" data-parent="#accordion" href="#collapse0" aria-expanded="true" aria-controls="collapse0">
+                  <span class="glyphicon glyphicon-pencil"></span> Serveur
+                </a>
+              </h4>
+            </div>
+            <div id="collapse0" class="panel-collapse collapse" role="tabpanel" aria-labelledby="heading0">
+              <div class="panel-body">
+                <fieldset class="legend-brdr-bttm">
+                <legend>Gladys</legend>
+                <div class="form-group col-xs-12 col-sm-6 col-md-4 col-lg-3">
+                  <label for="gladys_server">Adresse IP</label>
+                  <input type="text" class="form-control" name="gladys_server" id="gladys_server" placeholder="192.168.0.50" maxlength="16" value="">
+                  <p class="help-block">Indiquez l'adresse IP</p>
+                </div>
+                <div class="form-group col-xs-12 col-sm-6 col-md-2 col-lg-2">
+                  <label for="gladys_port">Port</label>
+                  <input type="text" class="form-control" name="gladys_port" id="gladys_port" placeholder="80" maxlength="6" value="">
+                  <p class="help-block">Indiquez le numéro de port</p>
+                </div>
+                <div class="form-group col-xs-12 col-sm-6 col-md-5 col-lg-5">
+                  <label for="gladys_token">Token</label>
+                  <input type="text" class="form-control" name="gladys_token" id="gladys_token" placeholder="" maxlength="34" value="">
+                  <p class="help-block">Renseignez le token (pour la sécurité)</p>
+                </div> 
+                </fieldset>           
+              </div>
+            </div>
+          </div>
+          <!--- Definition des groupes --->
+          <div class="panel panel-default">
+            <div class="panel-heading" role="tab" id="headingOne">
+              <h4 class="panel-title">
+                <a role="button" data-toggle="collapse" data-parent="#accordion" href="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
+                  <span class="glyphicon glyphicon-pencil"></span> Définition des groupes
+                </a>
+              </h4>
+            </div>
+            <div id="collapseOne" class="panel-collapse collapse" role="tabpanel" aria-labelledby="headingOne">
+              <div class="panel-body">
+                <div class="form-group col-xs-12 col-sm-6 col-md-4 col-lg-3">
+                  <label for="groupName1">Nom du groupe 1</label>
+                  <input type="text" class="form-control groupName" name="groupName1" id="groupName1" placeholder="32 Caractères max." maxlength="32">
+                </div>
+                <div class="form-group col-xs-12 col-sm-6 col-md-4 col-lg-3">
+                  <label for="groupName2">Nom du groupe 2</label>
+                  <input type="text" class="form-control groupName" name="groupName2" id="groupName2" placeholder="32 Caractères max." maxlength="32">
+                </div>
+                <div class="form-group col-xs-12 col-sm-6 col-md-4 col-lg-3">
+                  <label for="groupName3">Nom du groupe 3</label>
+                  <input type="text" class="form-control groupName" name="groupName3" id="groupName3" placeholder="32 Caractères max." maxlength="32">
+                </div>
+                <div class="form-group col-xs-12 col-sm-6 col-md-4 col-lg-3">
+                  <label for="groupName4">Nom du groupe 4</label>
+                  <input type="text" class="form-control groupName" name="groupName4" id="groupName4" placeholder="32 Caractères max." maxlength="32">
+                </div>
+                <div class="form-group col-xs-12 col-sm-6 col-md-4 col-lg-3">
+                  <label for="groupName5">Nom du groupe 5</label>
+                  <input type="text" class="form-control groupName" name="groupName5" id="groupName5" placeholder="32 Caractères max." maxlength="32">
+                </div>
+                <div class="form-group col-xs-12 col-sm-6 col-md-4 col-lg-3">
+                  <label for="groupName6">Nom du groupe 6</label>
+                  <input type="text" class="form-control groupName" name="groupName6" id="groupName6" placeholder="32 Caractères max." maxlength="32">
+                </div>
+                <div class="form-group col-xs-12 col-sm-6 col-md-4 col-lg-3">
+                  <label for="groupName7">Nom du groupe 7</label>
+                  <input type="text" class="form-control groupName" name="groupName7" id="groupName7" placeholder="32 Caractères max." maxlength="32">
+                </div>
+                <div class="form-group col-xs-12 col-sm-6 col-md-4 col-lg-3">
+                  <label for="groupName8">Nom du groupe 8</label>
+                  <input type="text" class="form-control groupName" name="groupName8" id="groupName8" placeholder="32 Caractères max." maxlength="32">
+                </div>
+                
+              </div>
+            </div>
+          </div>
+          <!--- Definition des peripheriques --->
+          <div class="panel panel-default">
+            <div class="panel-heading" role="tab" id="headingTwo">
+              <h4 class="panel-title">
+                <a class="collapsed" role="button" data-toggle="collapse" data-parent="#accordion" href="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo">
+                  <span class="glyphicon glyphicon-pencil"></span> Définition des périphériques
+                </a>
+              </h4>
+            </div>
+            <div id="collapseTwo" class="panel-collapse collapse" role="tabpanel" aria-labelledby="headingTwo">
+              <div class="panel-body">
+                <!--- Peripherique 1 --->
+                <fieldset class="legend-brdr-bttm">
+                <legend>Périphérique 1</legend>
+                <div class="form-group col-xs-12 col-sm-4 col-md-4">
+                  <label for="deviceName1">Nom</label>
+                  <input type="text" class="form-control" name="deviceName1" id="deviceName1" placeholder="32 Caractères max." maxlength="32">
+                </div>
+                <div class="form-group col-xs-6 col-sm-2 col-md-2 col-lg-1">
+                  <label for="deviceId1">ID</label>
+                  <input type="text" class="form-control" name="deviceId1" id="deviceId1" placeholder="123" maxlength="3">
+                </div>
+                <div class="form-group col-xs-12 col-sm-4 col-md-4">
+                  <label for="deviceGroup1">Rattaché au groupe</label>
+                  <select class="form-control groupNameSelect" id="deviceGroup1" name="deviceGroup1">
+                    <option value="0">Aucun</option>
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                    <option value="6">6</option>
+                    <option value="7">7</option>
+                    <option value="8">8</option>
+                  </select>
+                </div>
+                <div class="form-group col-xs-6 col-sm-2 col-md-2">
+                  <label for="deviceType1">Type</label>
+                  <select class="form-control" id="deviceType1" name="deviceType1">
+                    <option value="2">Switch</option>
+                    <option value="1">Push</option>
+                  </select>
+                </div>
+                </fieldset>
+                <!--- Peripherique 2 --->
+                <fieldset class="legend-brdr-bttm striped">
+                <legend class="striped">Périphérique 2</legend>
+                <div class="form-group col-xs-12 col-sm-4 col-md-4">
+                  <label for="deviceName2">Nom</label>
+                  <input type="text" class="form-control" name="deviceName2" id="deviceName2" placeholder="32 Caractères max." maxlength="32">
+                </div>
+                <div class="form-group col-xs-6 col-sm-2 col-md-2 col-lg-1">
+                  <label for="deviceId2">ID</label>
+                  <input type="text" class="form-control" name="deviceId2" id="deviceId2" placeholder="123" maxlength="3">
+                </div>
+                <div class="form-group col-xs-12 col-sm-4 col-md-4">
+                  <label for="deviceGroup2">Rattaché au groupe</label>
+                  <select class="form-control groupNameSelect" id="deviceGroup2" name="deviceGroup2">
+                    <option value="0">Aucun</option>
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                    <option value="6">6</option>
+                    <option value="7">7</option>
+                    <option value="8">8</option>
+                  </select>
+                </div>
+                <div class="form-group col-xs-6 col-sm-2 col-md-2">
+                  <label for="deviceType2">Type</label>
+                  <select class="form-control" id="deviceType2" name="deviceType2">
+                    <option value="2">Switch</option>
+                    <option value="1">Push</option>
+                  </select>
+                </div>
+                </fieldset>
+                <!--- Peripherique 3 --->
+                <fieldset class="legend-brdr-bttm">
+                <legend>Périphérique 3</legend>
+                <div class="form-group col-xs-12 col-sm-4 col-md-4">
+                  <label for="deviceName3">Nom</label>
+                  <input type="text" class="form-control" name="deviceName3" id="deviceName3" placeholder="32 Caractères max." maxlength="32">
+                </div>
+                <div class="form-group col-xs-6 col-sm-2 col-md-2 col-lg-1">
+                  <label for="deviceId3">ID</label>
+                  <input type="text" class="form-control" name="deviceId3" id="deviceId3" placeholder="123" maxlength="3">
+                </div>
+                <div class="form-group col-xs-12 col-sm-4 col-md-4">
+                  <label for="deviceGroup3">Rattaché au groupe</label>
+                  <select class="form-control groupNameSelect" id="deviceGroup3" name="deviceGroup3">
+                    <option value="0">Aucun</option>
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                    <option value="6">6</option>
+                    <option value="7">7</option>
+                    <option value="8">8</option>
+                  </select>
+                </div>
+                <div class="form-group col-xs-6 col-sm-2 col-md-2">
+                  <label for="deviceType3">Type</label>
+                  <select class="form-control" id="deviceType3" name="deviceType3">
+                    <option value="2">Switch</option>
+                    <option value="1">Push</option>
+                  </select>
+                </div>
+                </fieldset>
+                <!--- Peripherique 4 --->
+                <fieldset class="legend-brdr-bttm striped">
+                <legend class="striped">Périphérique 4</legend>
+                <div class="form-group col-xs-12 col-sm-4 col-md-4">
+                  <label for="deviceName4">Nom</label>
+                  <input type="text" class="form-control" name="deviceName4" id="deviceName4" placeholder="32 Caractères max." maxlength="32">
+                </div>
+                <div class="form-group col-xs-6 col-sm-2 col-md-2 col-lg-1">
+                  <label for="deviceId4">ID</label>
+                  <input type="text" class="form-control" name="deviceId4" id="deviceId4" placeholder="123" maxlength="3">
+                </div>
+                <div class="form-group col-xs-12 col-sm-4 col-md-4">
+                  <label for="deviceGroup4">Rattaché au groupe</label>
+                  <select class="form-control groupNameSelect" id="deviceGroup4" name="deviceGroup4">
+                    <option value="0">Aucun</option>
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                    <option value="6">6</option>
+                    <option value="7">7</option>
+                    <option value="8">8</option>
+                  </select>
+                </div>
+                <div class="form-group col-xs-6 col-sm-2 col-md-2">
+                  <label for="deviceType4">Type</label>
+                  <select class="form-control" id="deviceType4" name="deviceType4">
+                    <option value="2">Switch</option>
+                    <option value="1">Push</option>
+                  </select>
+                </div>
+                </fieldset>
+                <!--- Peripherique 5 --->
+                <fieldset class="legend-brdr-bttm">
+                <legend>Périphérique 5</legend>
+                <div class="form-group col-xs-12 col-sm-4 col-md-4">
+                  <label for="deviceName5">Nom</label>
+                  <input type="text" class="form-control" name="deviceName5" id="deviceName5" placeholder="32 Caractères max." maxlength="32">
+                </div>
+                <div class="form-group col-xs-6 col-sm-2 col-md-2 col-lg-1">
+                  <label for="deviceId5">ID</label>
+                  <input type="text" class="form-control" name="deviceId5" id="deviceId5" placeholder="123" maxlength="3">
+                </div>
+                <div class="form-group col-xs-12 col-sm-4 col-md-4">
+                  <label for="deviceGroup5">Rattaché au groupe</label>
+                  <select class="form-control groupNameSelect" id="deviceGroup5" name="deviceGroup5">
+                    <option value="0">Aucun</option>
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                    <option value="6">6</option>
+                    <option value="7">7</option>
+                    <option value="8">8</option>
+                  </select>
+                </div>
+                <div class="form-group col-xs-6 col-sm-2 col-md-2">
+                  <label for="deviceType5">Type</label>
+                  <select class="form-control" id="deviceType5" name="deviceType5">
+                    <option value="2">Switch</option>
+                    <option value="1">Push</option>
+                  </select>
+                </div>
+                </fieldset>
+                <!--- Peripherique 6 --->
+                <fieldset class="legend-brdr-bttm striped">
+                <legend class="striped">Périphérique 6</legend>
+                <div class="form-group col-xs-12 col-sm-4 col-md-4">
+                  <label for="deviceName6">Nom</label>
+                  <input type="text" class="form-control" name="deviceName6" id="deviceName6" placeholder="32 Caractères max." maxlength="32">
+                </div>
+                <div class="form-group col-xs-6 col-sm-2 col-md-2 col-lg-1">
+                  <label for="deviceId6">ID</label>
+                  <input type="text" class="form-control" name="deviceId6" id="deviceId6" placeholder="123" maxlength="3">
+                </div>
+                <div class="form-group col-xs-12 col-sm-4 col-md-4">
+                  <label for="deviceGroup6">Rattaché au groupe</label>
+                  <select class="form-control groupNameSelect" id="deviceGroup6" name="deviceGroup6">
+                    <option value="0">Aucun</option>
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                    <option value="6">6</option>
+                    <option value="7">7</option>
+                    <option value="8">8</option>
+                  </select>
+                </div>
+                <div class="form-group col-xs-6 col-sm-2 col-md-2">
+                  <label for="deviceType6">Type</label>
+                  <select class="form-control" id="deviceType6" name="deviceType6">
+                    <option value="2">Switch</option>
+                    <option value="1">Push</option>
+                  </select>
+                </div>
+                </fieldset>
+                <!--- Peripherique 7 --->
+                <fieldset class="legend-brdr-bttm">
+                <legend>Périphérique 7</legend>
+                <div class="form-group col-xs-12 col-sm-4 col-md-4">
+                  <label for="deviceName7">Nom</label>
+                  <input type="text" class="form-control" name="deviceName7" id="deviceName7" placeholder="32 Caractères max." maxlength="32">
+                </div>
+                <div class="form-group col-xs-6 col-sm-2 col-md-2 col-lg-1">
+                  <label for="deviceId7">ID</label>
+                  <input type="text" class="form-control" name="deviceId7" id="deviceId7" placeholder="123" maxlength="3">
+                </div>
+                <div class="form-group col-xs-12 col-sm-4 col-md-4">
+                  <label for="deviceGroup7">Rattaché au groupe</label>
+                  <select class="form-control groupNameSelect" id="deviceGroup7" name="deviceGroup7">
+                    <option value="0">Aucun</option>
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                    <option value="6">6</option>
+                    <option value="7">7</option>
+                    <option value="8">8</option>
+                  </select>
+                </div>
+                <div class="form-group col-xs-6 col-sm-2 col-md-2">
+                  <label for="deviceType7">Type</label>
+                  <select class="form-control" id="deviceType7" name="deviceType7">
+                    <option value="2">Switch</option>
+                    <option value="1">Push</option>
+                  </select>
+                </div>
+                </fieldset>
+                <!--- Peripherique 8 --->
+                <fieldset class="legend-brdr-bttm striped">
+                <legend class="striped">Périphérique 8</legend>
+                <div class="form-group col-xs-12 col-sm-4 col-md-4">
+                  <label for="deviceName8">Nom</label>
+                  <input type="text" class="form-control" name="deviceName8" id="deviceName8" placeholder="32 Caractères max." maxlength="32">
+                </div>
+                <div class="form-group col-xs-6 col-sm-2 col-md-2 col-lg-1">
+                  <label for="deviceId8">ID</label>
+                  <input type="text" class="form-control" name="deviceId8" id="deviceId8" placeholder="123" maxlength="3">
+                </div>
+                <div class="form-group col-xs-12 col-sm-4 col-md-4">
+                  <label for="deviceGroup8">Rattaché au groupe</label>
+                  <select class="form-control groupNameSelect" id="deviceGroup8" name="deviceGroup8">
+                    <option value="0">Aucun</option>
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                    <option value="6">6</option>
+                    <option value="7">7</option>
+                    <option value="8">8</option>
+                  </select>
+                </div>
+                <div class="form-group col-xs-6 col-sm-2 col-md-2">
+                  <label for="deviceType8">Type</label>
+                  <select class="form-control" id="deviceType8" name="deviceType8">
+                    <option value="2">Switch</option>
+                    <option value="1">Push</option>
+                  </select>
+                </div>
+                </fieldset>                 
+              </div>
+            </div>
+          </div>
+        </div>
+        <input type="hidden" name="secretKey" id="secretKey">
+        <button type="submit" class="btn btn-default pull-right">Sauvegarder</button>
+      </form>
+      
+    </div>
+    <div style="height:20px;">&nbsp;</div>
+    <div class="loader">
+      <div class="spin-loader"></div>
+      <div class="text-loader"></div>
+      <div class="button-loader">
+        <a href="/sys"><span class="glyphicon glyphicon-home"></span></a>
+      </div>
+    </div>
+    <script>
+    $(document).ready(function() {
+      $('.panel-collapse.in').collapse('hide');
+      init();
+    });
+    
+    $(document).on('change', '.groupName', function(){
+      var id = $(this).attr('id');
+      var num =  parseInt(id.substr(id.length - 1),10);
+      var group_name = $(this).val();
+      if(num >0 && num <9 && group_name != ''){
+        $('select.groupNameSelect option[value="'+ num + '"]').text(group_name);
+      }  
+    });
+    
+    function init(){
+      $(".text-loader").text("Initialisation");
+      $(".loader").show();     
+      $.get( "sendconfig", function(result) {
+        console.log(result);
+      }, "json" )
+      .done(function(data){
+        if(data.i2cSda) {$("#i2cSda").val(data.i2cSda);}
+        if(data.i2cScl) {$("#i2cScl").val(data.i2cScl);}
+        if(data.i2cAddr) {$("#i2cAddr").val(data.i2cAddr);}
+        if(data.i2cIntB) {$("#i2cIntB").val(data.i2cIntB);}
+        if(data.delayPush) {$("#delayPush").val(data.delayPush);}
+        if(data.sensorLight) {$("#sensorLight").prop('checked', data.sensorLight);}
+        if(data.invertInputDataPortB) {$("#invertInputDataPortB").prop('checked', data.invertInputDataPortB);}
+        if(data.gladys_server) {$("#gladys_server").val(data.gladys_server);}
+        if(data.gladys_port) {$("#gladys_port").val(data.gladys_port);}
+        if(data.gladys_token) {$("#gladys_token").val(data.gladys_token);}
+        if(data.groupName1) {$("#groupName1").val(data.groupName1);$('select.groupNameSelect option[value="1"]').text(data.groupName1);}      
+        if(data.groupName2) {$("#groupName2").val(data.groupName2);$('select.groupNameSelect option[value="2"]').text(data.groupName2);}        
+        if(data.groupName3) {$("#groupName3").val(data.groupName3);$('select.groupNameSelect option[value="3"]').text(data.groupName3);}
+        if(data.groupName4) {$("#groupName4").val(data.groupName4);$('select.groupNameSelect option[value="4"]').text(data.groupName4);}
+        if(data.groupName5) {$("#groupName5").val(data.groupName5);$('select.groupNameSelect option[value="5"]').text(data.groupName5);}
+        if(data.groupName6) {$("#groupName6").val(data.groupName6);$('select.groupNameSelect option[value="6"]').text(data.groupName6);}
+        if(data.groupName7) {$("#groupName7").val(data.groupName7);$('select.groupNameSelect option[value="7"]').text(data.groupName7);}
+        if(data.groupName8) {$("#groupName8").val(data.groupName8);$('select.groupNameSelect option[value="8"]').text(data.groupName8);}
+
+        $("#deviceId1").val(data.deviceId1);
+        $("#deviceId2").val(data.deviceId2);
+        $("#deviceId3").val(data.deviceId3);
+        $("#deviceId4").val(data.deviceId4);
+        $("#deviceId5").val(data.deviceId5);
+        $("#deviceId6").val(data.deviceId6);
+        $("#deviceId7").val(data.deviceId7);
+        $("#deviceId8").val(data.deviceId8);
+        
+        if(data.deviceName1) {$("#deviceName1").val(data.deviceName1);}
+        if(data.deviceName2) {$("#deviceName2").val(data.deviceName2);}
+        if(data.deviceName3) {$("#deviceName3").val(data.deviceName3);}
+        if(data.deviceName4) {$("#deviceName4").val(data.deviceName4);}
+        if(data.deviceName5) {$("#deviceName5").val(data.deviceName5);}
+        if(data.deviceName6) {$("#deviceName6").val(data.deviceName6);}
+        if(data.deviceName7) {$("#deviceName7").val(data.deviceName7);}
+        if(data.deviceName8) {$("#deviceName8").val(data.deviceName8);}
+        if(data.deviceGroup1) {$("#deviceGroup1").val(data.deviceGroup1);}
+        if(data.deviceGroup2) {$("#deviceGroup2").val(data.deviceGroup2);}
+        if(data.deviceGroup3) {$("#deviceGroup3").val(data.deviceGroup3);}
+        if(data.deviceGroup4) {$("#deviceGroup4").val(data.deviceGroup4);}
+        if(data.deviceGroup5) {$("#deviceGroup5").val(data.deviceGroup5);}
+        if(data.deviceGroup6) {$("#deviceGroup6").val(data.deviceGroup6);}
+        if(data.deviceGroup7) {$("#deviceGroup7").val(data.deviceGroup7);}
+        if(data.deviceGroup8) {$("#deviceGroup8").val(data.deviceGroup8);}
+        if(data.deviceType1) {$("#deviceType1").val(data.deviceType1);}
+        if(data.deviceType2) {$("#deviceType2").val(data.deviceType2);}
+        if(data.deviceType3) {$("#deviceType3").val(data.deviceType3);}
+        if(data.deviceType4) {$("#deviceType4").val(data.deviceType4);}
+        if(data.deviceType5) {$("#deviceType5").val(data.deviceType5);}
+        if(data.deviceType6) {$("#deviceType6").val(data.deviceType6);}
+        if(data.deviceType7) {$("#deviceType7").val(data.deviceType7);}
+        if(data.deviceType8) {$("#deviceType8").val(data.deviceType8);}
+        if(data.secretKey) {$("#secretKey").val(data.secretKey);}
+
+        $(".loader").hide();
+      })
+      .fail(function(data){
+        console.log(data);
+        $(".spin-loader").addClass("state-false");
+        $(".text-loader").html("<span style='color:red;'>Erreur<br>"+data.responseJSON.error+"</span>");
+      });
+      
+    }    
+    
+    function onSubmit( form ){
+      $('.panel-collapse.in').collapse('hide');
+      $(".text-loader").text("Sauvegarde");
+      $(".loader").show();
+      var data = $(form).serializeFormJSON();
+      
+      console.log( data );
+      // send ajax
+      $.getJSON("saveconfig",
+         data
+      ).done(function(data) {
+             console.log( data );
+             $(".spin-loader").addClass("state-ok");
+             $(".text-loader").text("Redémarez l'ESP !");
+             $(".button-loader").show();
+         }
+      ).fail(function(data) {
+            $(".spin-loader").addClass("state-false");
+            $(".text-loader").html("<span style='color:red;'>Erreur<br>"+data.responseJSON.error+"</span>");
+         }
+      );
+      return false;
+    }
+    
+    (function ($) {
+        $.fn.serializeFormJSON = function () {
+    
+            var o = {};
+            var a = this.serializeArray();
+            $.each(a, function () {
+                if (o[this.name]) {
+                    if (!o[this.name].push) {
+                        o[this.name] = [o[this.name]];
+                    }
+                    o[this.name].push(this.value || '');
+                } else {
+                    o[this.name] = this.value || '';
+                }
+            });
+            return o;
+        };
+    })(jQuery);
+    </script>  
+  </body>
+</html>    

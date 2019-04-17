@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!--jquery/3.1.1')-->
+    <script src="js/jquery.min.js"></script>
+    <!--bootstrap/3.4.1')-->
+    <script src="js/bootstrap.min.js"></script>
+    <link rel="stylesheet" href="css/bootstrap.min.css">
+    <title>Bienvenue</title>
+    <style>
+    .pull-right {
+      color:#b4e0f6;
+    }
+    </style>
+  </head>
+  <body>
+    <div class="jumbotron text-center">
+      <h1>Menu</h1>
+      <p>v 3.0.0</p> 
+    </div>
+      
+    <div class="container">
+      <div class="row">
+        <div class="col-xs-12">
+          <div class="alert alert-info alert-dismissible fade in" role="alert">
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">×</span></button>
+            <strong><span class="glyphicon glyphicon-lock"></span></strong> Pensez à activer le mode '<strong>debug</strong>'
+          </div>
+        </div>
+        <div class="col-xs-12">
+          <a role="button" class="btn btn-default btn-lg btn-block" href="/config">
+            <span class="glyphicon glyphicon-cog pull-left"></span> Configuration
+            <span class="glyphicon glyphicon-lock pull-right"></span>
+          </a>
+        </div>
+        <div class="col-xs-12">
+          <a role="button" class="btn btn-default btn-lg btn-block" href="/scanI2C">
+            <span class="glyphicon glyphicon-search pull-left"></span> Scan I2C
+            <span class="glyphicon glyphicon-lock pull-right"></span>
+          </a>
+          
+        </div>
+        <div class="col-xs-12">
+          <a role="button" class="btn btn-default btn-lg btn-block" href="/readPort">
+            <span class="glyphicon glyphicon-dashboard pull-left"></span> Etat GPIO
+            <span class="glyphicon glyphicon-lock pull-right"></span>
+          </a>
+        </div>
+        <div class="col-xs-12">
+          <a role="button" class="btn btn-default btn-lg btn-block" href="/command">
+            <span class="glyphicon glyphicon-equalizer pull-left"></span> Gestion
+          </a>
+        </div>       
+      </div>
+    </div> 
+  </body>
+</html>    
