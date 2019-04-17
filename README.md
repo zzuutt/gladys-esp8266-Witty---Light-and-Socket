@@ -75,7 +75,7 @@ Le bouton de l'ESP va nous permettre d'effectuer différentes actions
 > imprime sur le port série la configuration
 
 > **un appui long (8sec) :**
-> réinitialisation, active le mode configuration. Utile lors d'un changement de paramètre.
+> réinitialisation des paramètres wifi, active le mode configuration. Utile lors d'un changement de paramètre.
 
 ## Première étape
 Configurez Gladys
@@ -96,14 +96,18 @@ C'est très simple, prenez votre smartphone,
 ![step1](https://github.com/zzuutt/gladys-esp8266-Witty/blob/master/images/step1.jpg)
 ![step2](https://github.com/zzuutt/gladys-esp8266-Witty/blob/master/images/step2.jpg)
 ![step3](https://github.com/zzuutt/gladys-esp8266-Witty/blob/master/images/step3.jpg)
-![step4](https://github.com/zzuutt/gladys-esp8266-Witty/blob/master/images/step4-1.jpg)
-![step5](https://github.com/zzuutt/gladys-esp8266-Witty/blob/master/images/step5.jpg)
-![step6](https://github.com/zzuutt/gladys-esp8266-Witty/blob/master/images/step6.jpg)
-![step7](https://github.com/zzuutt/gladys-esp8266-Witty/blob/master/images/step8.jpg)
+![step4](https://github.com/zzuutt/gladys-esp8266-Witty/blob/master/images/step4-2.jpg)
+![step4](https://github.com/zzuutt/gladys-esp8266-Witty/blob/master/images/step4-3.jpg)
+![step5](https://github.com/zzuutt/gladys-esp8266-Witty/blob/master/images/step6.jpg)
+![step6](https://github.com/zzuutt/gladys-esp8266-Witty/blob/master/images/step8.jpg)
+![step7](https://github.com/zzuutt/gladys-esp8266-Witty/blob/master/images/step5-1.jpg)
+![step8](https://github.com/zzuutt/gladys-esp8266-Witty/blob/master/images/step6-1.jpg)
+![step9](https://github.com/zzuutt/gladys-esp8266-Witty/blob/master/images/step7-1.jpg)
+![step10](https://github.com/zzuutt/gladys-esp8266-Witty/blob/master/images/step8-1.jpg)
 
 * connectez vous sur le réseau wifi ESP suivi de chiffre.
 * Allez sur l'url "*http://192.168.4.1*", vous êtes sur la page d'accueil du module.
-* Cliquez sur "*Configurer*".
+* Cliquez sur "*Configuration*".
 * Renseignez les paramètres demandés
 * Cliquez sur "*Save*"
 * Retournez à la page d'accueil "*main page*"
@@ -114,9 +118,13 @@ La led bleue clignotante passe au fixe, puis le module redémarre.
 
 S'il ne redémarre pas tout seul, débranchez l'alimentation puis rebranchez.
 
-La led verte clignote puis passe au blanc clignotant. 
+La led verte clignote puis passe au blanc clignotant ou magenta clignotant. 
 
-Le module envoie l'état des lampes à Gladys.
+- magenta clignotant : vous êtes en configuration d'usine. Allez sur la page 'système' du module
+
+http://ip-de-lesp/sys
+
+- blanc clignotant : le module envoie l'état des lampes à Gladys.
 
 
 ## Etat des lampes
