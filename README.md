@@ -23,6 +23,10 @@ La carte "Optocoupler isolation 8 entrées" sera reliée aux lampes pour visuali
 
 Téléversez le fichier ino ou le bin dans l'ESP
 
+A partir de la version 3.00, nous allons utiliser une zone réservée appelée SPIFFS.
+
+Afin de pouvoir télécharger des fichiers dans cette zone mémoire, il est nécessaire d’installer l’outil de téléchargement des fichiers dans la zone SPIFFS à l’IDE Arduino disponible sur [Github](https://github.com/esp8266/arduino-esp8266fs-plugin).
+
 ## Raccordement mcp23017
 
 Le port A du mcp23017 est utilisé pour commander les relais
@@ -40,10 +44,13 @@ Je vous recommande de raccorder l'I2C comme ci-dessous, mais pas d’inquiétude
 ## Visualisation 
 Le module ESP est équipé d'une led 3 couleurs, nous allons l'utiliser pour visualiser chaque étape.
 > **led clignotante bleue :**
-> Le module doit être configuré
+> Le module doit être configuré (la partie wifi)
 
- > **led verte clignotante :**
- >Indique la lecture du fichier de configuration
+> **led magenta clignotante :**
+> Le module est en configuration usine - Vous devez aller sur la page système pour saisir vos paramètres 
+
+> **led verte clignotante :**
+> Indique la lecture du fichier de configuration
 
 >**led verte clignotante (rapide) :**
 >mode 'debug' activé
