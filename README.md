@@ -134,4 +134,5 @@ Vous pouvez gérer vos périphériques directement depuis votre smartphone.
 
 Allez sur la page système puis sélectionnez le menu gestion
 
+![step7](https://github.com/zzuutt/gladys-esp8266-Witty/blob/master/images/step5-1.jpg)
 ![gestion](https://github.com/zzuutt/gladys-esp8266-Witty/blob/master/images/step9.jpg)
