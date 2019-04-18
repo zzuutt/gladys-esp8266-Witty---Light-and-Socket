@@ -93,18 +93,6 @@ A l'allumage le module clignote en bleue, il faut le configurer.
 
 C'est très simple, prenez votre smartphone, 
 
-![step1](https://github.com/zzuutt/gladys-esp8266-Witty/blob/master/images/step1.jpg)
-![step2](https://github.com/zzuutt/gladys-esp8266-Witty/blob/master/images/step2.jpg)
-![step3](https://github.com/zzuutt/gladys-esp8266-Witty/blob/master/images/step3.jpg)
-![step4](https://github.com/zzuutt/gladys-esp8266-Witty/blob/master/images/step4-2.jpg)
-![step4](https://github.com/zzuutt/gladys-esp8266-Witty/blob/master/images/step4-3.jpg)
-![step5](https://github.com/zzuutt/gladys-esp8266-Witty/blob/master/images/step6.jpg)
-![step6](https://github.com/zzuutt/gladys-esp8266-Witty/blob/master/images/step8-0.jpg)
-![step7](https://github.com/zzuutt/gladys-esp8266-Witty/blob/master/images/step5-1.jpg)
-![step8](https://github.com/zzuutt/gladys-esp8266-Witty/blob/master/images/step6-2.jpg)
-![step9](https://github.com/zzuutt/gladys-esp8266-Witty/blob/master/images/step7-1.jpg)
-![step10](https://github.com/zzuutt/gladys-esp8266-Witty/blob/master/images/step8-1.jpg)
-
 * connectez vous sur le réseau wifi ESP suivi de chiffre.
 * Allez sur l'url "*http://192.168.4.1*", vous êtes sur la page d'accueil du module.
 * Cliquez sur "*Configuration*".
@@ -113,6 +101,15 @@ C'est très simple, prenez votre smartphone,
 * Retournez à la page d'accueil "*main page*"
 * Notez l'adresse IP du module, cela peut servir sauf si vous utilisez une IP fixe
 * Fermez la page "*Exit portal*"
+
+![step1](https://github.com/zzuutt/gladys-esp8266-Witty/blob/master/images/step1.jpg)
+![step2](https://github.com/zzuutt/gladys-esp8266-Witty/blob/master/images/step2.jpg)
+
+![step3](https://github.com/zzuutt/gladys-esp8266-Witty/blob/master/images/step3.jpg)
+![step4](https://github.com/zzuutt/gladys-esp8266-Witty/blob/master/images/step4-2.jpg)
+![step4](https://github.com/zzuutt/gladys-esp8266-Witty/blob/master/images/step4-3.jpg)
+![step5](https://github.com/zzuutt/gladys-esp8266-Witty/blob/master/images/step6.jpg)
+![step6](https://github.com/zzuutt/gladys-esp8266-Witty/blob/master/images/step8-0.jpg)
 
 La led bleue clignotante passe au fixe, puis le module redémarre.
 
@@ -123,6 +120,11 @@ La led verte clignote puis passe au blanc clignotant ou magenta clignotant.
 - magenta clignotant : vous êtes en configuration d'usine. Allez sur la page 'système' du module
 
 http://ip-de-lesp/sys
+
+![step7](https://github.com/zzuutt/gladys-esp8266-Witty/blob/master/images/step5-1.jpg)
+![step8](https://github.com/zzuutt/gladys-esp8266-Witty/blob/master/images/step6-2.jpg)
+![step9](https://github.com/zzuutt/gladys-esp8266-Witty/blob/master/images/step7-1.jpg)
+![step10](https://github.com/zzuutt/gladys-esp8266-Witty/blob/master/images/step8-1.jpg)
 
 - blanc clignotant : le module envoie l'état des lampes à Gladys.
 
