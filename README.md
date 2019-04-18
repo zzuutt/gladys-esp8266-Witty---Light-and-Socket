@@ -89,7 +89,7 @@ Les **COMMAND**es peuvent être (***en majuscule***) :
 * SWITCH
 
 ## Initialisation
-A l'allumage le module clignote en bleue, il faut le configurer.
+A l'allumage le module clignote en bleue, vous devez configurer le wifi.
 
 C'est très simple, prenez votre smartphone, 
 
