@@ -2,7 +2,7 @@
 Module ESP8266 Witty + extend card MCP23017 + card 8 relays + card 8 input
 
 Exemple de câblage:
-![exemple](https://github.com/zzuutt/gladys-esp8266-Witty/blob/master/images/schema.jpg =200x)
+<p><a href="https://github.com/zzuutt/gladys-esp8266-Witty/blob/master/images/schema.jpg"><img src="https://github.com/zzuutt/gladys-esp8266-Witty/blob/master/images/schema.jpg" width="200" target="_blank"></a></p>
 
 # Module ESP8266 Witty
 Nous allons utiliser un module ESP8266 Witty pour gérer 8 relais et 8 entrées
