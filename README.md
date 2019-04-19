@@ -1,4 +1,4 @@
-# gladys-esp8266-Witty
+# gladys-esp8266-Witty  (lien vers [Gladys](https://gladysassistant.com/))
 Module ESP8266 Witty + extend card MCP23017 + card 8 relays + card 8 input
 
 Exemple de câblage:
