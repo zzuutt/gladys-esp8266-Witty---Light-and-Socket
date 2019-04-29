@@ -45,6 +45,7 @@ class deviceMCP {
 String topPage;
 String bottomPage;
 
+String version_soft = "3.1.0";
 //define your default values here, if there are different values in config.json, they are overwritten.
 char gladys_server[40];
 char gladys_port[6] = "8080";
@@ -98,6 +99,7 @@ bool espStart = false;
 
 // Indicates whether ESP has WiFi credentials saved from previous session
 bool initialConfig = false;
+bool initialNetworkParam = false;
 bool initialParam = false;
 
 // Delay LongPress (in millisec)
@@ -280,8 +282,8 @@ void setup() {
   // Mount the filesystem
   bool result = SPIFFS.begin();
   Serial.println("SPIFFS opened: " + result);
-
-  if (!readConfigNetworkFile) {
+  initialNetworkParam = readConfigNetworkFile();
+  if (!initialNetworkParam) {
     Serial.println("Failed to read network configuration file !!!");
     initialConfig = true;
   }
@@ -292,7 +294,8 @@ void setup() {
     initialConfig = true;
   } else {
     if (!initialConfig) {
-      if(static_ip != "" && static_ip != "0.0.0.0") {
+      Serial.println("Init static IP :" + String(static_ip));
+      if(static_ip != "" && strcmp(static_ip,"0.0.0.0") != 0) {
         //set static ip
         _ip.fromString(static_ip);
         _gw.fromString(static_gw);
@@ -329,6 +332,7 @@ void setup() {
     for (int i = 0; i < 8; i++){
       // MCP23017 port A -> Output
       mcp.pinMode(allDeviceA[i].pinOut, OUTPUT);
+      mcp.digitalWrite(allDeviceA[i].pinOut, 1);
       // MCP23017 port B -> Input
       mcp.pinMode(allDeviceA[i].pinIn, INPUT);
       mcp.pullUp(allDeviceA[i].pinIn, HIGH);
@@ -977,7 +981,7 @@ bool changeState(int deviceConcerned, String cmdExec, bool currentState){
         return pushCmd(deviceConcerned);
     } else if(cmdExec == "SWITCH") {
         //exec switch command
-        return switchCmd(deviceConcerned, !currentState);
+        return switchCmd(deviceConcerned, currentState);
     }
   } else if(debugMode){
     Serial.println("The real state does not match the current state");
@@ -989,12 +993,12 @@ bool pushCmd(int deviceConcerned){
   if(debugMode){
     Serial.println("Order PUSH change state pin: " + String(allDeviceA[deviceConcerned].pinOut) + " state: 1");
   }
-  mcp.digitalWrite(allDeviceA[deviceConcerned].pinOut, 1);
+  mcp.digitalWrite(allDeviceA[deviceConcerned].pinOut, 0);
   delay(delayPush);
   if(debugMode){
     Serial.println("Order PUSH change state pin: " + String(allDeviceA[deviceConcerned].pinOut) + " state: 0");
   }
-  mcp.digitalWrite(allDeviceA[deviceConcerned].pinOut, 0);
+  mcp.digitalWrite(allDeviceA[deviceConcerned].pinOut, 1);
   return 1;
 }
 
@@ -1164,6 +1168,8 @@ void sendConfig(){
     uuidStr = ESP8266TrueRandom.uuidToString(uuidNumber);
     DynamicJsonBuffer jsonBuffer;
     JsonObject& json = jsonBuffer.createObject();
+
+    json["version"] = version_soft;
 
     if(!stateCommand && debugMode) {
       json["i2cSda"] = I2C_SDA_PIN;
