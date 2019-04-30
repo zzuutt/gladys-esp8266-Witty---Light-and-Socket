@@ -1,4 +1,5 @@
 # gladys-esp8266-Witty  (lien vers [Gladys](https://gladysassistant.com/))
+## Gestion des lumières et/ou prises   - mode Push ou Switch
 Module ESP8266 Witty + extend card MCP23017 + card 8 relays + card 8 input
 
 Exemple de câblage:
