@@ -544,7 +544,7 @@
         console.log(result);
       }, "json" )
       .done(function(data){
-        if(data.version) {$("#version").val(data.version);}
+        if(data.version) {$("#version").text('v ' + data.version);}
         if(data.i2cSda) {$("#i2cSda").val(data.i2cSda);}
         if(data.i2cScl) {$("#i2cScl").val(data.i2cScl);}
         if(data.i2cAddr) {$("#i2cAddr").val(data.i2cAddr);}
