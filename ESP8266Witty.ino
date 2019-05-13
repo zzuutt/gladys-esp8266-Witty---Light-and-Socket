@@ -45,7 +45,7 @@ class deviceMCP {
 String topPage;
 String bottomPage;
 
-String version_soft = "3.1.0";
+String version_soft = "3.1.1";
 //define your default values here, if there are different values in config.json, they are overwritten.
 char gladys_server[40];
 char gladys_port[6] = "8080";
@@ -93,6 +93,7 @@ byte lastPortB = 0b00000000;
 
 bool sensorState = false;
 int lightValue = 0;
+int checkSensorPeriod = 1000;
 
 bool debugMode = false;
 bool espStart = false;
@@ -398,7 +399,6 @@ void loop() {
   
   // Read state button
   button.tick();
-  delay(10);
   
   sensor = sensorStateLCR();
   if(!debugMode){
@@ -454,7 +454,12 @@ void readPortB(){
 
 bool sensorStateLCR(){
   if(sensorLight){
-    lightValue = analogRead(LIGHT_PIN);
+    if(checkSensorPeriod > 1000){
+      lightValue = analogRead(LIGHT_PIN);
+      checkSensorPeriod = 0;
+    } else {
+       checkSensorPeriod++;
+    }
     if(lightValue > 300){
       sensorState = true;
     } else {
@@ -470,26 +475,30 @@ int sendStateToGladys (bool realState, int deviceTypeId){
   HTTPClient http;
   String getData, link;
   bool sensor = sensorStateLCR();
-  
+  int httpCode;
+   
   if(sensor && !debugMode){
     blinkLED(1, 1, 1, 0.2);
   } else {
     black();
   }
-  
-  getData = "?token=" + String(gladys_token) + "&devicetype=" + String(deviceTypeId) + "&value=" + String(realState);
-  link = "http://" + String(gladys_server) + ":" + String(gladys_port) + "/devicestate/create" + getData;
-  http.begin(link);
-  int httpCode = http.GET();
-  String payload = http.getString();
-  if(debugMode){
-    Serial.println("Link: " + link);
-    Serial.println("http code: " + httpCode);
-    Serial.println("response: " + payload + "\n");
-  }
+  if(static_ip != "" && strcmp(static_ip,"0.0.0.0") != 0) {
+     getData = "?token=" + String(gladys_token) + "&devicetype=" + String(deviceTypeId) + "&value=" + String(realState);
+     link = "http://" + String(gladys_server) + ":" + String(gladys_port) + "/devicestate/create" + getData;
+     http.begin(link);
+     httpCode = http.GET();
+     String payload = http.getString();
+     if(debugMode){
+       Serial.println("Link: " + link);
+       Serial.println("http code: " + httpCode);
+       Serial.println("response: " + payload + "\n");
+     }
 
-  http.end();
-  
+     http.end();
+  } else {
+     httpCode = 200;
+  }
+   
   if(!debugMode){
     blinkLED(0,0,0,0.5);
   } else {
