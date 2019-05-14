@@ -45,7 +45,7 @@ class deviceMCP {
 String topPage;
 String bottomPage;
 
-String version_soft = "3.1.1";
+String version_soft = "3.1.2";
 //define your default values here, if there are different values in config.json, they are overwritten.
 char gladys_server[40];
 char gladys_port[6] = "8080";
@@ -410,7 +410,7 @@ void loop() {
       }
     }
   }
-    
+
   if(interruptCounter > 0){
     interruptCounter--;
     numberOfInterrupts++;
@@ -444,7 +444,9 @@ void readPortB(){
         }
         //Send to Gladys
         if(initialParam) {
-          sendStateToGladys(stateBit, allDeviceA[i].id); 
+          if(gladys_server != "" && strcmp(gladys_server,"0.0.0.0") != 0) {
+            sendStateToGladys(stateBit, allDeviceA[i].id); 
+          }
         }
       }
     }
@@ -473,32 +475,29 @@ bool sensorStateLCR(){
 
 int sendStateToGladys (bool realState, int deviceTypeId){
   HTTPClient http;
-  String getData, link;
-  bool sensor = sensorStateLCR();
-  int httpCode;
-   
+  String getData, link, payload;
+  
   if(sensor && !debugMode){
     blinkLED(1, 1, 1, 0.2);
   } else {
     black();
   }
-  if(static_ip != "" && strcmp(static_ip,"0.0.0.0") != 0) {
-     getData = "?token=" + String(gladys_token) + "&devicetype=" + String(deviceTypeId) + "&value=" + String(realState);
-     link = "http://" + String(gladys_server) + ":" + String(gladys_port) + "/devicestate/create" + getData;
-     http.begin(link);
-     httpCode = http.GET();
-     String payload = http.getString();
-     if(debugMode){
-       Serial.println("Link: " + link);
-       Serial.println("http code: " + httpCode);
-       Serial.println("response: " + payload + "\n");
-     }
-
-     http.end();
-  } else {
-     httpCode = 200;
+  
+  getData = "?token=" + String(gladys_token) + "&devicetype=" + String(deviceTypeId) + "&value=" + String(realState);
+  link = "http://" + String(gladys_server) + ":" + String(gladys_port) + "/devicestate/create" + getData;
+  http.begin(link);
+  int httpCode = http.GET();
+  if(httpCode >0) {
+    payload = http.getString();
   }
-   
+  if(debugMode){
+    Serial.println("Link: " + link);
+    Serial.println("http code: " + httpCode);
+    Serial.println("response: " + payload + "\n");
+  }
+
+  http.end();
+  
   if(!debugMode){
     blinkLED(0,0,0,0.5);
   } else {
