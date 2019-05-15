@@ -445,6 +445,7 @@ void readPortB(){
         //Send to Gladys
         if(initialParam) {
           if(gladys_server != "" && strcmp(gladys_server,"0.0.0.0") != 0) {
+            yield();
             sendStateToGladys(stateBit, allDeviceA[i].id); 
           }
         }
