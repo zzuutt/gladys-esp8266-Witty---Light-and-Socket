@@ -94,6 +94,8 @@ byte lastPortB = 0b00000000;
 bool sensorState = false;
 int lightValue = 0;
 int checkSensorPeriod = 1000;
+unsigned long intervalCheck = 250;
+unsigned long timeNow;
 
 bool debugMode = false;
 bool espStart = false;
@@ -457,12 +459,15 @@ void readPortB(){
 
 bool sensorStateLCR(){
   if(sensorLight){
-    if(checkSensorPeriod > 1000){
-      lightValue = analogRead(LIGHT_PIN);
-      checkSensorPeriod = 0;
-    } else {
-       checkSensorPeriod++;
+    unsigned long timeCheck;
+    timeNow = millis();
+    timeCheck = timeNow + intervalCheck;
+    while(timeNow < timeCheck){
+      timeNow = millis();
+      yield();  
     }
+    lightValue = analogRead(LIGHT_PIN);
+
     if(lightValue > 300){
       sensorState = true;
     } else {
