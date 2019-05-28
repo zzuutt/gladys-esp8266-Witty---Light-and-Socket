@@ -8,6 +8,9 @@
 
    COMMAND: PUSH & SWITCH
    V 3.00
+   
+   Author: Zzuutt
+   https://github.com/zzuutt/gladys-esp8266-Witty---Light-and-Socket
 
 */
 #include <FS.h>               //this needs to be first, or it all crashes and burns...
