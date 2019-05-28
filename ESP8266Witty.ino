@@ -48,7 +48,7 @@ class deviceMCP {
 String topPage;
 String bottomPage;
 
-String version_soft = "3.1.2";
+String version_soft = "3.1.5";
 //define your default values here, if there are different values in config.json, they are overwritten.
 char gladys_server[40];
 char gladys_port[6] = "8080";
@@ -99,6 +99,7 @@ int lightValue = 0;
 int checkSensorPeriod = 1000;
 unsigned long intervalCheck = 250;
 unsigned long timeNow;
+unsigned long timeNowPush;
 
 bool debugMode = false;
 bool espStart = false;
@@ -301,7 +302,7 @@ void setup() {
   } else {
     if (!initialConfig) {
       Serial.println("Init static IP :" + String(static_ip));
-      if(static_ip != "" && strcmp(static_ip,"0.0.0.0") != 0) {
+      if(strlen(static_ip) != 0 && strcmp(static_ip,"0.0.0.0") != 0) {
         //set static ip
         _ip.fromString(static_ip);
         _gw.fromString(static_gw);
@@ -449,7 +450,7 @@ void readPortB(){
         }
         //Send to Gladys
         if(initialParam) {
-          if(gladys_server != "" && strcmp(gladys_server,"0.0.0.0") != 0) {
+          if(strlen(gladys_server) != 0 && strcmp(gladys_server,"0.0.0.0") != 0) {
             yield();
             sendStateToGladys(stateBit, allDeviceA[i].id); 
           }
@@ -1007,11 +1008,18 @@ bool changeState(int deviceConcerned, String cmdExec, bool currentState){
 }
 
 bool pushCmd(int deviceConcerned){
+  unsigned long timeCheckPush;
   if(debugMode){
     Serial.println("Order PUSH change state pin: " + String(allDeviceA[deviceConcerned].pinOut) + " state: 1");
   }
   mcp.digitalWrite(allDeviceA[deviceConcerned].pinOut, 0);
-  delay(delayPush);
+  timeNowPush = millis();
+  timeCheckPush = timeNowPush + delayPush;
+  while(timeNowPush < timeCheckPush){
+    timeNowPush = millis();
+    yield();  
+  }
+  //delay(delayPush);
   if(debugMode){
     Serial.println("Order PUSH change state pin: " + String(allDeviceA[deviceConcerned].pinOut) + " state: 0");
   }
