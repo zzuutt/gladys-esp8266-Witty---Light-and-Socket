@@ -15,7 +15,8 @@
 */
 #include <FS.h>               //this needs to be first, or it all crashes and burns...
 #include <ESP8266WiFi.h>
-#include <Ticker.h>  //Ticker Library
+#include <ESP8266Ping.h>      //https://github.com/dancol90/ESP8266Ping
+#include <Ticker.h>           //Ticker Library
 #include <ArduinoJson.h>
 #include <ESP8266WebServer.h>
 #include <ESP8266HTTPClient.h>
@@ -48,7 +49,7 @@ class deviceMCP {
 String topPage;
 String bottomPage;
 
-String version_soft = "3.1.5";
+String version_soft = "3.2.0";
 //define your default values here, if there are different values in config.json, they are overwritten.
 char gladys_server[40];
 char gladys_port[6] = "8080";
@@ -101,8 +102,12 @@ unsigned long intervalCheck = 250;
 unsigned long timeNow;
 unsigned long timeNowPush;
 
+unsigned long timePing;
+unsigned long intervalPing = 60000; //1mn
+
 bool debugMode = false;
 bool espStart = false;
+bool error = false;
 
 // Indicates whether ESP has WiFi credentials saved from previous session
 bool initialConfig = false;
@@ -381,6 +386,7 @@ void setup() {
   
     server.begin();
     espStart = 1;
+    timePing = intervalPing + millis();
   }
 }
 
@@ -407,7 +413,7 @@ void loop() {
   button.tick();
   
   sensor = sensorStateLCR();
-  if(!debugMode){
+  if(!debugMode && !error){
     if(initialParam){
       if(sensor){
           white();
@@ -431,6 +437,20 @@ void loop() {
     if(debugMode){
       Serial.println("-------- ----- --------");
     }
+  }
+
+  timeNow = millis();
+  if(timeNow >= timePing) {
+    //bool ret = Ping.ping(WiFi.localIP(),1);
+    if(Ping.ping(WiFi.gatewayIP())) {
+      Serial.println("Ping Success!!");
+      error = false;
+    } else {
+      Serial.println("Ping Error :(");
+      error = true;
+    }
+    timePing = intervalPing + millis();
+    red();
   }
 
 }
