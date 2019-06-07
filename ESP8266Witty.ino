@@ -53,7 +53,7 @@ String version_soft = "3.2.0";
 //define your default values here, if there are different values in config.json, they are overwritten.
 char gladys_server[40];
 char gladys_port[6] = "8080";
-char gladys_token[34] = "YOUR_GLADYS_TOKEN";
+char gladys_token[50] = "YOUR_GLADYS_TOKEN";
 //default custom static IP
 char static_ip[16] = "0.0.0.0";
 char static_gw[16] = "192.168.0.254";
