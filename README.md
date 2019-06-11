@@ -5,7 +5,7 @@ Module ESP8266 Witty + extend card MCP23017 + card 8 relays + card 8 input
 _Si vous utilisez ce montage, pensez à m'envoyer un petit retour ;)_
 
 Exemple de câblage:
-<p><a target="_blank" href="https://github.com/zzuutt/gladys-esp8266-Witty/blob/master/images/schema.jpg"><img src="https://github.com/zzuutt/gladys-esp8266-Witty/blob/master/images/schema.jpg" width="350"></a> &nbsp; &nbsp; <img src="https://github.com/zzuutt/gladys-esp8266-Witty/blob/master/images/step9.jpg" height="278"></p>
+<p><a target="_blank" href="https://github.com/zzuutt/gladys-esp8266-Witty/blob/master/images/schema.jpg"><img src="https://github.com/zzuutt/gladys-esp8266-Witty/blob/master/images/schema.jpg" width="350"></a> &nbsp; &nbsp; <img src="https://github.com/zzuutt/gladys-esp8266-Witty/blob/master/images/step9.jpg" height="278"><img src="https://github.com/zzuutt/gladys-esp8266-Witty---Light-and-Socket/blob/master/images/Gladys.jpg" height="278"></p>
 
 # Module ESP8266 Witty
 Nous allons utiliser un module ESP8266 Witty pour gérer 8 relais et 8 entrées
@@ -143,3 +143,4 @@ Allez sur la page système puis sélectionnez le menu gestion
 
 ![step7](https://github.com/zzuutt/gladys-esp8266-Witty/blob/master/images/step5-1.jpg)
 ![gestion](https://github.com/zzuutt/gladys-esp8266-Witty/blob/master/images/step9.jpg)
+![Gladys](https://github.com/zzuutt/gladys-esp8266-Witty---Light-and-Socket/blob/master/images/Gladys.jpg)
