@@ -44,8 +44,8 @@ Je vous recommande de raccorder l'I2C comme ci-dessous, mais pas d’inquiétude
 
 | pin |      mcp23017      |     ESP8266
 |-----|--------------------|--------------------
-|I2C SDA | I2C SDA | pin GPIO5
-|I2C SCL | I2C SCL | pin GPIO0
+|I2C SDA | I2C SDA | pin GPIO0
+|I2C SCL | I2C SCL | pin GPIO5
 |Interrupt | INT B | pin GPIO14
 
 ## Visualisation 
