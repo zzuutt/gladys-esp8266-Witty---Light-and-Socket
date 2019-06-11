@@ -49,7 +49,7 @@ class deviceMCP {
 String topPage;
 String bottomPage;
 
-String version_soft = "3.2.0";
+String version_soft = "3.3.0";
 //define your default values here, if there are different values in config.json, they are overwritten.
 char gladys_server[40];
 char gladys_port[6] = "8080";
@@ -58,7 +58,7 @@ char gladys_token[50] = "YOUR_GLADYS_TOKEN";
 char static_ip[16] = "0.0.0.0";
 char static_gw[16] = "192.168.0.254";
 char static_sn[16] = "255.255.255.0";
-char static_dns[16] = "8.8.8.8";
+char static_dns[16] = "192.168.0.254";
 IPAddress _ip,_gw,_sn,_dns;
 
 deviceMCP allDeviceA[8] = {{0,0,8,"Device 1",0,1},{1,0,9,"Device 2",0,1},{2,0,10,"Device 3",0,1},{3,0,11,"Device 4",0,1},{4,0,12,"Device 5",0,1},{5,0,13,"Device 6",0,1},{6,0,14,"Device 7",0,1},{7,0,15,"Device 8",0,1}};
@@ -83,8 +83,8 @@ const int GREEN_PIN_LED = 12;
 const int LIGHT_PIN = A0;
 
 //Pin du I2C
-unsigned int I2C_SDA_PIN = 5;
-unsigned int I2C_SCL_PIN = 0;
+unsigned int I2C_SDA_PIN = 0;
+unsigned int I2C_SCL_PIN = 5;
 unsigned int I2C_ADDR = 7;
 //Delay Push
 unsigned int delayPush = 300;
@@ -104,6 +104,7 @@ unsigned long timeNowPush;
 
 unsigned long timePing;
 unsigned long intervalPing = 60000; //1mn
+int timeRestart = 0; //1440;
 
 bool debugMode = false;
 bool espStart = false;
@@ -451,6 +452,10 @@ void loop() {
     }
     timePing = intervalPing + millis();
     red();
+    timeRestart++;
+    if (timeRestart > 720){
+      ESP.restart();
+    }
   }
 
 }
@@ -514,6 +519,9 @@ int sendStateToGladys (bool realState, int deviceTypeId){
   }
   
   getData = "?token=" + String(gladys_token) + "&devicetype=" + String(deviceTypeId) + "&value=" + String(realState);
+  if(strlen(gladys_port) == 0) {
+    strcpy(gladys_port, "80");
+  }
   link = "http://" + String(gladys_server) + ":" + String(gladys_port) + "/devicestate/create" + getData;
   http.begin(link);
   int httpCode = http.GET();
