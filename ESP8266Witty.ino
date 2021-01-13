@@ -13,30 +13,33 @@
    https://github.com/zzuutt/gladys-esp8266-Witty---Light-and-Socket
 
 */
-#include <FS.h>               //this needs to be first, or it all crashes and burns...
+#include "LittleFS.h"
 #include <ESP8266WiFi.h>
 #include <ESP8266Ping.h>      //https://github.com/dancol90/ESP8266Ping
-#include <Ticker.h>           //Ticker Library
-#include <ArduinoJson.h>
+#include <Ticker.h>           //https://github.com/esp8266/Arduino/tree/master/libraries/Ticker
+#include <ArduinoJson.h>      //by Benoit Blanchon v5.13.5
 #include <ESP8266WebServer.h>
 #include <ESP8266HTTPClient.h>
 #include <DNSServer.h>
 #include <WiFiManager.h>      //https://github.com/kentaylor/WiFiManager
-#include <OneButton.h>
+#include <OneButton.h>        //https://github.com/mathertel/OneButton
 #include <Wire.h>
 #include <Adafruit_MCP23017.h>
-#include "ESP8266TrueRandom.h"
+#include "ESP8266TrueRandom.h" //https://github.com/marvinroger/ESP8266TrueRandom
+#include <CircularBuffer.h>   //https://github.com/rlogiacco/CircularBuffer
 #include "html/i2c_html.h"
 #include "html/state_html.h"
+#include "FTPServer.h"
 
 Ticker blinker;
 Adafruit_MCP23017 mcp;
+FTPServer ftpSrv(LittleFS);
 
 class deviceMCP {
   public:
     unsigned int pinOut, id, pinIn, group, type;
     char deviceName[32];
-    deviceMCP(unsigned int arg1, unsigned int arg2, unsigned int arg3, char arg4[32], unsigned int arg5, unsigned int arg6){
+    deviceMCP(unsigned int arg1, unsigned int arg2, unsigned int arg3,const char arg4[32], unsigned int arg5, unsigned int arg6){
       pinOut = arg1;
       id = arg2;
       pinIn = arg3;
@@ -46,10 +49,22 @@ class deviceMCP {
     }
 };
 
+class deviceCMD {
+  public:
+    int deviceConcerned;
+    bool state;
+    String cmd;
+    deviceCMD(int arg1, String arg2, bool arg3){
+      deviceConcerned = arg1;
+      cmd = arg2;
+      state = arg3;
+    }
+};
+
 String topPage;
 String bottomPage;
 
-String version_soft = "3.3.0";
+String version_soft = "4.9.0F";
 //define your default values here, if there are different values in config.json, they are overwritten.
 char gladys_server[40];
 char gladys_port[6] = "8080";
@@ -62,9 +77,19 @@ char static_dns[16] = "192.168.0.254";
 IPAddress _ip,_gw,_sn,_dns;
 
 deviceMCP allDeviceA[8] = {{0,0,8,"Device 1",0,1},{1,0,9,"Device 2",0,1},{2,0,10,"Device 3",0,1},{3,0,11,"Device 4",0,1},{4,0,12,"Device 5",0,1},{5,0,13,"Device 6",0,1},{6,0,14,"Device 7",0,1},{7,0,15,"Device 8",0,1}};
-char * groupName[] = {"Aucun", "Salon", "Salle à manger", "Cuisine", "Chambre 1", "Chambre 2", "Chambre 3", "Couloir", "Exterieur"};
+char * groupName[] = {(char *)"Aucun                          ",
+                    (char *)"Salon                          ", 
+                    (char *)"Salle à manger                 ",
+                    (char *)"Cuisine                        ",
+                    (char *)"Chambre 1                      ",
+                    (char *)"Chambre 2                      ",
+                    (char *)"Chambre 3                      ",
+                    (char *)"Couloir                        ",
+                    (char *)"Exterieur                      "};
 bool sensorLight = true;
 bool sensor = false;
+
+CircularBuffer<deviceCMD*, 8> bufferCMD;
 
 // Constants
 const char* CONFIG_FILE_NETWORK = "/config_network.json";
@@ -101,10 +126,12 @@ int checkSensorPeriod = 1000;
 unsigned long intervalCheck = 250;
 unsigned long timeNow;
 unsigned long timeNowPush;
+unsigned long intervalCheckMCP = 50;
 
 unsigned long timePing;
-unsigned long intervalPing = 60000; //1mn
+unsigned long intervalPing = 300000; //5mn
 int timeRestart = 0; //1440;
+int timeSendState = 0;
 
 bool debugMode = false;
 bool espStart = false;
@@ -129,6 +156,46 @@ OneButton button(BUTTON_PIN_RST, true);
 
 // Set web server port number to 80
 ESP8266WebServer server(80);
+
+void red();
+void blue();
+void green();
+void white();
+void black();
+void changeStateLed(int);
+void blinkLED(int, int, int, float);
+void clearConfig();
+void resetConfig();
+void ICACHE_RAM_ATTR handleInterrupt();
+byte readPortB();
+void readStatePortB();
+void sendStatePortB_info();
+bool sensorStateLCR();
+int sendStateToGladys(bool, int);
+bool readConfigNetworkFile();
+bool readConfigFile();
+bool writeNetworkConfigFile();
+bool writeConfigFile();
+void displayData();
+void debugState();
+bool determinateToken();
+int determinateID();
+int determinateDevice(int);
+bool changeState(int, String, bool);
+void pushCmd(int);
+void switchCmd(int, bool);
+void getHeatindex();
+void scanPorts();
+String check_if_exist_I2C();
+void checkPort();
+void sendConfig();
+void sendHeaderAccess();
+void saveConfig();
+void sendLastValue();
+void setupMCPInterrupts();
+void activeInterrupt();
+void deactiveInterrupt();
+
 
 void red() {
   digitalWrite(RED_PIN_LED, HIGH);
@@ -160,7 +227,7 @@ void black() {
   digitalWrite(BLUE_PIN_LED, LOW);
 }
 
-void changeState(int pin) {
+void changeStateLed(int pin) {
   byte red = bitRead(pin, 0);
   byte green = bitRead(pin, 1);
   byte blue = bitRead(pin, 2);
@@ -183,7 +250,7 @@ void blinkLED(int c_red = 0, int c_green = 0, int c_blue = 0, float every = 0.5)
   int pin = c_red + (c_green * 2) + (c_blue * 4);
   //Serial.println("value color:"+String(pin));
   if (pin > 0){
-    blinker.attach(every, changeState, pin);
+    blinker.attach(every, changeStateLed, pin);
   }
 }
 
@@ -293,8 +360,8 @@ void setup() {
   button.attachLongPressStart(resetConfig);            // link the function to be called on a longpress event.
 
   // Mount the filesystem
-  bool result = SPIFFS.begin();
-  Serial.println("SPIFFS opened: " + result);
+  bool result = LittleFS.begin();
+  Serial.println("LittleFS opened: " + result);
   initialNetworkParam = readConfigNetworkFile();
   if (!initialNetworkParam) {
     Serial.println("Failed to read network configuration file !!!");
@@ -337,29 +404,16 @@ void setup() {
   } else {
     initialParam = readConfigFile();
 
+    pinMode(interruptPin, INPUT_PULLUP);
     //Define I2C pins
     Wire.begin(I2C_SDA_PIN,I2C_SCL_PIN);
     // MCP23017 address
     mcp.begin(I2C_ADDR);
-
-    for (int i = 0; i < 8; i++){
-      // MCP23017 port A -> Output
-      mcp.pinMode(allDeviceA[i].pinOut, OUTPUT);
-      mcp.digitalWrite(allDeviceA[i].pinOut, 1);
-      // MCP23017 port B -> Input
-      mcp.pinMode(allDeviceA[i].pinIn, INPUT);
-      mcp.pullUp(allDeviceA[i].pinIn, HIGH);
-    }
-
-    // MCP23017 Interrupt test
-    pinMode(interruptPin, INPUT);
-    for (int i = 0; i < 8; i++){
-      mcp.setupInterruptPin(allDeviceA[i].pinIn,CHANGE);  
-    }
+    setupMCPInterrupts();
 
     // enable interrupts before going to sleep/wait
     // And we setup a callback for the arduino INT handler.
-    attachInterrupt(digitalPinToInterrupt(interruptPin), handleInterrupt, CHANGE);
+    activeInterrupt();
                 
     blinkLED(0, 0, 0, 0.5);
     if(!initialParam) {
@@ -378,35 +432,83 @@ void setup() {
     server.on( "/saveconfig", saveConfig );
     server.on( "/readStatePort", sendLastValue );
 
-    server.serveStatic("/js", SPIFFS, "/js");
-    server.serveStatic("/css", SPIFFS, "/css");
-    server.serveStatic("/fonts", SPIFFS, "/fonts");
-    server.serveStatic("/sys", SPIFFS, "/index.html");
-    server.serveStatic("/config", SPIFFS, "/config.html");
-    server.serveStatic("/command", SPIFFS, "/gear.html");
+    server.serveStatic("/js", LittleFS, "/js");
+    server.serveStatic("/css", LittleFS, "/css");
+    server.serveStatic("/fonts", LittleFS, "/fonts");
+    server.serveStatic("/sys", LittleFS, "/index.html");
+    server.serveStatic("/config", LittleFS, "/config.html");
+    server.serveStatic("/command", LittleFS, "/gear.html");
   
     server.begin();
     espStart = 1;
     timePing = intervalPing + millis();
+
+    ftpSrv.begin("admin","admin");    //username, password for ftp.
   }
 }
 
-void handleInterrupt() {
+void setupMCPInterrupts(){
+    mcp.setupInterrupts(false,false,LOW);  //FALLING
+    
+    for (int i = 0; i < 8; i++){
+      // MCP23017 port A -> Output
+      mcp.pinMode(allDeviceA[i].pinOut, OUTPUT);
+      mcp.digitalWrite(allDeviceA[i].pinOut, 1);
+      // MCP23017 port B -> Input
+      mcp.pinMode(allDeviceA[i].pinIn, INPUT);
+      mcp.pullUp(allDeviceA[i].pinIn, HIGH);
+    }
+
+    // MCP23017 Interrupt test
+    for (int i = 0; i < 8; i++){
+      mcp.setupInterruptPin(allDeviceA[i].pinIn,CHANGE);  
+    }
+}
+
+void activeInterrupt() {
+  attachInterrupt(digitalPinToInterrupt(interruptPin), handleInterrupt, FALLING);
+}
+void deactiveInterrupt() {
+  detachInterrupt(interruptPin);
+}
+
+void ICACHE_RAM_ATTR handleInterrupt() {
+  //detachInterrupt(interruptPin);
   interruptCounter++;
   if(debugMode){
     Serial.println("An interrupt has occurred. Counter: " + String(interruptCounter));
   }
 }
 
-void loop() {
+void loop(void) {
   // is configuration portal requested?
   if (initialConfig) {
     clearConfig();
   }
   if (espStart && initialParam){
-    readPortB();
+    //read state all port B
+    lastPortB = readPortB(); //mcp.readGPIO(1);
+    lastPortB = lastPortB ^ 0b11111111;
+    readStatePortB();
     espStart = 0;
+    timePing = intervalPing + millis();
   }
+  if(debugMode){
+    ftpSrv.handleFTP();
+  }
+
+  if(WiFi.status() != WL_CONNECTED){
+    Serial.println("WiFi deconnected");
+    red();
+    while (WiFi.status() != WL_CONNECTED)
+    {
+      delay(500);
+      Serial.print(".");
+      button.tick();
+    }
+    Serial.println("\nWiFi connected");
+  }
+  
   //process all the requests for the Webserver
   server.handleClient();    
   
@@ -424,16 +526,26 @@ void loop() {
     }
   }
 
+  if(!bufferCMD.isEmpty()){
+    deviceCMD* devicecmd = bufferCMD.shift();
+    if(debugMode){
+      Serial.println("Exec command changeState device: " + String(devicecmd->deviceConcerned) + " cmd: " + devicecmd->cmd + " state: " + String(devicecmd->state));
+    }
+    changeState(devicecmd->deviceConcerned, devicecmd->cmd, devicecmd->state);
+    delete devicecmd;
+  }
+
   if(interruptCounter > 0){
     interruptCounter--;
     numberOfInterrupts++;
+    //attachInterrupt(digitalPinToInterrupt(interruptPin), handleInterrupt, FALLING);
     if(debugMode){
       Serial.println("An interrupt has occurred. Total: " + String(numberOfInterrupts));
       Serial.println("-------- DEBUG --------");
       Serial.println("--Device state change--");
     }
 
-    readPortB();
+    readStatePortB();
     
     if(debugMode){
       Serial.println("-------- ----- --------");
@@ -446,23 +558,43 @@ void loop() {
     if(Ping.ping(WiFi.gatewayIP())) {
       Serial.println("Ping Success!!");
       error = false;
+      timeRestart = 0;
+      timeSendState ++;
     } else {
       Serial.println("Ping Error :(");
       error = true;
+      timeRestart++;
     }
     timePing = intervalPing + millis();
     red();
-    timeRestart++;
-    if (timeRestart > 720){
+    
+    if (timeRestart >= 5){
       ESP.restart();
+    }
+    if (timeSendState >= 30){  //30 mn
+      timeSendState = 0; 
+      sendStatePortB_info();
     }
   }
 
 }
 
-void readPortB(){
+byte readPortB() {
+  unsigned long timeCheck;
+  byte valPortB;
+  timeNow = millis();
+  timeCheck = timeNow + intervalCheckMCP;
+  while(timeNow < timeCheck){
+    timeNow = millis();
+    yield();  
+  }
   //read state all port B
-  byte statePortB = mcp.readGPIO(1);
+  valPortB = mcp.readGPIO(1);  
+  return valPortB;
+}
+
+void readStatePortB() {
+  byte statePortB = readPortB();
   //commpare last value and new value
   if((lastPortB != statePortB) || espStart){
     //search for the port that has changed
@@ -484,6 +616,24 @@ void readPortB(){
     }
     lastPortB = statePortB;
   }  
+}
+
+void sendStatePortB_info(){
+  //read state all port B
+  byte statePortB = readPortB();
+    for (int i=0; i<8; i++){
+      byte stateBit = bitRead(statePortB, i);
+        if(invertInputDataPortB) {
+          stateBit = !stateBit;
+        }
+        //Send to Gladys
+        if(initialParam) {
+          if(strlen(gladys_server) != 0 && strcmp(gladys_server,"0.0.0.0") != 0) {
+            yield();
+            sendStateToGladys(stateBit, allDeviceA[i].id); 
+          }
+        }
+    }
 }
 
 bool sensorStateLCR(){
@@ -508,7 +658,8 @@ bool sensorStateLCR(){
   return sensorState;
 }
 
-int sendStateToGladys (bool realState, int deviceTypeId){
+int sendStateToGladys(bool realState, int deviceTypeId){
+  WiFiClient wificlient;
   HTTPClient http;
   String getData, link, payload;
   
@@ -523,7 +674,7 @@ int sendStateToGladys (bool realState, int deviceTypeId){
     strcpy(gladys_port, "80");
   }
   link = "http://" + String(gladys_server) + ":" + String(gladys_port) + "/devicestate/create" + getData;
-  http.begin(link);
+  http.begin(wificlient, link);
   int httpCode = http.GET();
   if(httpCode >0) {
     payload = http.getString();
@@ -547,7 +698,7 @@ int sendStateToGladys (bool realState, int deviceTypeId){
 
 bool readConfigNetworkFile() {
   // this opens the config file in read-mode
-  File f = SPIFFS.open(CONFIG_FILE_NETWORK, "r");
+  File f = LittleFS.open(CONFIG_FILE_NETWORK, "r");
 
   if (!f) {
     Serial.println("Configuration file not found");
@@ -600,7 +751,7 @@ bool readConfigNetworkFile() {
 bool readConfigFile() {
   Serial.println("Read configuration parameter file");
   // this opens the config file in read-mode
-  File f = SPIFFS.open(CONFIG_FILE, "r");
+  File f = LittleFS.open(CONFIG_FILE, "r");
 
   if (!f) {
     Serial.println("Configuration file not found");
@@ -810,7 +961,7 @@ bool writeNetworkConfigFile() {
   json["static_dns"] = static_dns;
 
   // Open file for writing
-  File f = SPIFFS.open(CONFIG_FILE_NETWORK, "w");
+  File f = LittleFS.open(CONFIG_FILE_NETWORK, "w");
   if (!f) {
     Serial.println("Failed to open config file for writing");
     return false;
@@ -891,7 +1042,7 @@ bool writeConfigFile() {
   json["delayPush"] = delayPush;
 
   // Open file for writing
-  File f = SPIFFS.open(CONFIG_FILE, "w");
+  File f = LittleFS.open(CONFIG_FILE, "w");
   if (!f) {
     Serial.println("Failed to open config file for writing");
     return false;
@@ -962,8 +1113,10 @@ void debugState(){
   debugMode = !(debugMode);
   if(!debugMode){
     blinkLED(0,0,0,0.5);
+    Serial.println("--- DEBUG ***");
   } else {
     blinkLED(0,1,0,0.1);
+    Serial.println("*** DEBUG ---");
   }
 }
 
@@ -995,7 +1148,7 @@ int determinateID() {
 int determinateDevice(int deviceID){
   int i, findDevice = 99;
   for(i=0; i < 8; i++){
-    if(deviceID == allDeviceA[i].id){
+    if(deviceID == (int)(allDeviceA[i].id)){
       findDevice = i;
       break;
     }
@@ -1013,7 +1166,7 @@ bool changeState(int deviceConcerned, String cmdExec, bool currentState){
   //read real state
   //realState = mcp.digitalRead(allDeviceA[deviceConcerned].pinIn);  //not work why ????
   //read state all port B
-  byte statePortB = mcp.readGPIO(1);
+  byte statePortB = readPortB(); //mcp.readGPIO(1);
   realState = bitRead(statePortB, (allDeviceA[deviceConcerned].pinIn - 8));
   if(invertInputDataPortB) {
     realState = !realState;
@@ -1022,22 +1175,32 @@ bool changeState(int deviceConcerned, String cmdExec, bool currentState){
     Serial.println("Order " + String(cmdExec) + " change state pinOut: " + String(allDeviceA[deviceConcerned].pinOut) + " pinIn: " + String(allDeviceA[deviceConcerned].pinIn) + " realstate: " + String(realState) + " currentState: " + String(currentState));
   }
   if (realState == currentState){
+    unsigned long timeCheck;
+    timeNow = millis();
+    timeCheck = timeNow + intervalCheckMCP;
+    while(timeNow < timeCheck){
+      timeNow = millis();
+      yield();  
+    }
     if (cmdExec == "PUSH") {
         //exec push command
-        return pushCmd(deviceConcerned);
+        pushCmd(deviceConcerned);
+        return true;
     } else if(cmdExec == "SWITCH") {
         //exec switch command
-        return switchCmd(deviceConcerned, currentState);
+        switchCmd(deviceConcerned, currentState);
+        return true;
     }
   } else if(debugMode){
     Serial.println("The real state does not match the current state");
   }
-  return 0;
+  return false;
 }
 
-bool pushCmd(int deviceConcerned){
+void pushCmd(int deviceConcerned){
   unsigned long timeCheckPush;
   if(debugMode){
+    Serial.println("--- PUSH ---");
     Serial.println("Order PUSH change state pin: " + String(allDeviceA[deviceConcerned].pinOut) + " state: 1");
   }
   mcp.digitalWrite(allDeviceA[deviceConcerned].pinOut, 0);
@@ -1047,20 +1210,18 @@ bool pushCmd(int deviceConcerned){
     timeNowPush = millis();
     yield();  
   }
-  //delay(delayPush);
   if(debugMode){
     Serial.println("Order PUSH change state pin: " + String(allDeviceA[deviceConcerned].pinOut) + " state: 0");
   }
   mcp.digitalWrite(allDeviceA[deviceConcerned].pinOut, 1);
-  return 1;
 }
 
-bool switchCmd(int deviceConcerned, bool state){
+void switchCmd(int deviceConcerned, bool state){
   if(debugMode){
+    Serial.println("--- SWITCH ---");
     Serial.println("Order SWITCH change state pin: " + String(allDeviceA[deviceConcerned].pinOut) + " state: " + String(state));
   }
   mcp.digitalWrite(allDeviceA[deviceConcerned].pinOut, state);
-  return 1;
 }
 
 void getHeatindex() {
@@ -1084,13 +1245,13 @@ void getHeatindex() {
       }    
     }
     if (cmd != ""){
-      if(!debugMode){
-        changeState(deviceConcerned, cmd, state);
-      } else {
+      if(debugMode){
         Serial.println("Order received:");
         Serial.println("deviceID: " + String(deviceConcerned) + " cmd: " + cmd + " state: " + String(state));
-        changeState(deviceConcerned, cmd, state); 
       }
+      deviceCMD* devicecmd = new deviceCMD(deviceConcerned, cmd, !state);
+      bufferCMD.unshift(devicecmd);
+      //changeState(deviceConcerned, cmd, !state); 
     }
     server.send ( 200, "application/json", "{\"deviceID\":\"" + String(readArgId) + "\",\"pin\":\"" + String(deviceConcerned) + "\",\"cmd\":\"" + cmd + "\",\"state\":\"" + String(state) + "\"}" );
   }
@@ -1102,7 +1263,7 @@ void getHeatindex() {
 
 void scanPorts() {
   if(debugMode){
-    detachInterrupt(interruptPin);
+    deactiveInterrupt();
     String sendWebPage, checkI2C;
     uint8_t portArray[] = {0, 2, 5, 14, 16};
     String portMap[] = {"GPIO0", "GPIO2", "GPIO5", "GPIO14", "GPIO16"};
@@ -1128,10 +1289,11 @@ void scanPorts() {
     }
     Serial.println("\n------- I2C Scanner -------");
     sendWebPage += "</tbody>";
-    String pageFinal = I2C_page;
+    String pageFinal = FPSTR(I2C_page);
     pageFinal.replace("%%DATA%%", sendWebPage);
     server.send(200, "text/html", pageFinal);
     Wire.begin(I2C_SDA_PIN,I2C_SCL_PIN);
+    activeInterrupt();
   } else {
     server.send(404, "text/plain", "404: Not found");
   }
@@ -1173,7 +1335,7 @@ String check_if_exist_I2C() {
   } else {
     Serial.println("**********************************");
   }
-  //delay(1000);           // wait 1 seconds for next scan, did not find it necessary
+  //delay(500);           // wait 1 seconds for next scan, did not find it necessary
   return sendWebPage;
 }
 
@@ -1185,7 +1347,7 @@ void checkPort(){
   if(debugMode){
     String sendWebPage = "<table><tbody>";
     //read state all port B
-    byte statePortB = mcp.readGPIO(1);
+    byte statePortB = readPortB(); //mcp.readGPIO(1);
     //search for the port that has changed
     for (int i=0; i<8; i++){
       byte stateBit = bitRead(statePortB, i);
@@ -1198,7 +1360,7 @@ void checkPort(){
     if(modeAjax) {
       server.send(200, "text/html", sendWebPage);   
     } else { 
-      String pageFinal = STATE_page;
+      String pageFinal = FPSTR(STATE_page);
       pageFinal.replace("%%DATA%%", sendWebPage);
       server.send(200, "text/html", pageFinal);
     }   
