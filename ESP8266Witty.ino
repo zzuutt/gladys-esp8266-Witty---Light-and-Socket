@@ -7,7 +7,7 @@
    + Optocoupler Isolation Voltage Test Board 8 Channel AC 220V
 
    COMMAND: PUSH & SWITCH
-   V 3.00
+   V 4.00
    
    Author: Zzuutt
    https://github.com/zzuutt/gladys-esp8266-Witty---Light-and-Socket
