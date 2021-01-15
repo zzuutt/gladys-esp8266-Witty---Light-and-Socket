@@ -681,7 +681,7 @@ int sendStateToGladys(bool realState, int deviceTypeId){
   }
   if(debugMode){
     Serial.println("Link: " + link);
-    Serial.println("http code: " + httpCode);
+    Serial.println("http code: " + String(httpCode));
     Serial.println("response: " + payload + "\n");
   }
 
